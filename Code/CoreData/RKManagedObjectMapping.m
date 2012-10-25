@@ -181,12 +181,16 @@
     }
 
     // If we have found the primary key attribute & value, try to find an existing instance to update
-    if (primaryKeyAttribute && primaryKeyValue && NO == [primaryKeyValue isEqual:[NSNull null]]) {
+    if (primaryKeyAttribute && primaryKeyValue && NO == [primaryKeyValue isEqual:[NSNull null]])
+    {
+        // Raj:
+        id coercedPrimaryKeyValue = [entity coerceValueForPrimaryKey:primaryKeyValue];
+        
         object = [self.objectStore.cacheStrategy findInstanceOfEntity:entity
                                               withPrimaryKeyAttribute:primaryKeyAttribute
-                                                                value:primaryKeyValue
+                                                                value:coercedPrimaryKeyValue    // Raj
                                                inManagedObjectContext:[self.objectStore managedObjectContextForCurrentThread]];
-
+        
         if (object && [self.objectStore.cacheStrategy respondsToSelector:@selector(didFetchObject:)]) {
             [self.objectStore.cacheStrategy didFetchObject:object];
         }

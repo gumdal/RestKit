@@ -8,6 +8,7 @@
 
 #import <objc/runtime.h>
 #import "NSEntityDescription+RKAdditions.h"
+#import "RKObjectMapping.h"
 
 NSString * const RKEntityDescriptionPrimaryKeyAttributeUserInfoKey = @"primaryKeyAttribute";
 NSString * const RKEntityDescriptionPrimaryKeyAttributeValuePredicateSubstitutionVariable = @"PRIMARY_KEY_VALUE";
@@ -74,6 +75,7 @@ static char primaryKeyAttributeNameKey, primaryKeyPredicateKey;
     return (NSPredicate *)objc_getAssociatedObject(self, &primaryKeyPredicateKey);
 }
 
+// Raj:
 - (id)coerceValueForPrimaryKey:(id)primaryKeyValue
 {
     id searchValue = primaryKeyValue;
@@ -89,6 +91,22 @@ static char primaryKeyAttributeNameKey, primaryKeyPredicateKey;
             // Coerce to string
             if ([searchValue respondsToSelector:@selector(stringValue)]) {
                 searchValue = [searchValue stringValue];
+            }
+        }
+        // Raj: Added for NSDate
+        else if (theClass == [NSDate class] || [theClass isSubclassOfClass:[NSDate class]])
+        {
+            NSArray *allDateFormatters = [RKObjectMapping defaultDateFormatters];
+            if (nil!=searchValue)
+            {
+                id cooersedVal = nil;
+                for (NSDateFormatter *dateFormatter in allDateFormatters)
+                {
+                    cooersedVal = [dateFormatter dateFromString:searchValue];
+                    if (nil!=cooersedVal)
+                        break;
+                }
+                searchValue = cooersedVal;
             }
         }
     }
