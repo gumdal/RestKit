@@ -33,3 +33,6 @@ extern NSString * const RKMIMETypeXML;
 
 /// MIME Type text/xml
 extern NSString * const RKMIMETypeTextXML;
+
+// Raj: Added MIME type for rss+xml
+extern NSString * const RKMIMETypeRSSXML;
