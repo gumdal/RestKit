@@ -129,6 +129,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
 @synthesize loading = _loading;
 @synthesize response = _response;
 @synthesize cancelled = _cancelled;
+@synthesize attachOAuthParametersToURL;
 
 #if TARGET_OS_IPHONE
 @synthesize backgroundPolicy = _backgroundPolicy;
@@ -169,6 +170,8 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
             _backgroundTaskIdentifier = UIBackgroundTaskInvalid;
         }
 #endif
+        // Raj OAuth:
+        [self setAttachOAuthParametersToURL:NO];
     }
 
     return self;
@@ -353,7 +356,10 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
         else
             parameters = [_URL queryParameters];
         
-        NSString *methodString = RKRequestMethodNameFromType(self.method);        
+        // Raj OAuth:
+        NSDictionary *oauthParamters = nil;
+
+        NSString *methodString = RKRequestMethodNameFromType(self.method);
         echo = [GCOAuth URLRequestForPath:[_URL path] 
                                HTTPMethod:methodString 
                                parameters:(self.method == RKRequestMethodGET) ? [_URL queryParameters] : parameters 
@@ -362,10 +368,29 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
                               consumerKey:self.OAuth1ConsumerKey 
                            consumerSecret:self.OAuth1ConsumerSecret 
                               accessToken:self.OAuth1AccessToken 
-                              tokenSecret:self.OAuth1AccessTokenSecret];
+                              tokenSecret:self.OAuth1AccessTokenSecret
+                OAuthParametersDictionary:&oauthParamters];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"Authorization"] forHTTPHeaderField:@"Authorization"];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"Accept-Encoding"] forHTTPHeaderField:@"Accept-Encoding"];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"User-Agent"] forHTTPHeaderField:@"User-Agent"];
+        
+        // Raj OAuth: Adding the OAuth query params to URL:
+        if (self.attachOAuthParametersToURL)
+        {
+            NSMutableString *absoluteURLString = [NSMutableString stringWithString:[[_URLRequest URL] absoluteString]];
+            NSLog(@"Absolute URL String = %@", absoluteURLString);
+            [absoluteURLString appendString:@"?"];
+            
+            NSMutableArray *entries = [NSMutableArray array];
+            [oauthParamters enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+                NSString *entry = [NSString stringWithFormat:@"%@=%@", [key pcen], [obj pcen]];
+                [entries addObject:entry];
+            }];
+            NSString *stringToAppend = [entries componentsJoinedByString:@"&"];
+            [absoluteURLString appendString:stringToAppend];
+            NSURL *newURL = [NSURL URLWithString:absoluteURLString];
+            [_URLRequest setURL:newURL];
+        }
     }
 
     // OAuth 2 valid request

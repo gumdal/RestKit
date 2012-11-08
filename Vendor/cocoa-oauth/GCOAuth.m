@@ -189,6 +189,12 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
     [super dealloc];
 }
 
+// Raj OAuth:
+-(NSDictionary*)oAuthParametersDictionary
+{
+    return OAuthParameters;
+}
+
 #pragma mark - class methods
 + (void)setUserAgent:(NSString *)agent {
     [GCOAuthUserAgent release];
@@ -228,7 +234,32 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
                         consumerKey:(NSString *)consumerKey
                      consumerSecret:(NSString *)consumerSecret
                         accessToken:(NSString *)accessToken
-                        tokenSecret:(NSString *)tokenSecret {
+                        tokenSecret:(NSString *)tokenSecret
+{
+    return [GCOAuth URLRequestForPath:path
+                           HTTPMethod:HTTPMethod
+                           parameters:parameters
+                               scheme:scheme
+                                 host:host
+                          consumerKey:consumerKey
+                       consumerSecret:consumerSecret
+                          accessToken:accessToken
+                          tokenSecret:tokenSecret
+            OAuthParametersDictionary:NULL];
+}
+
+// Raj OAuth:
++ (NSURLRequest *)URLRequestForPath:(NSString *)path
+                         HTTPMethod:(NSString *)HTTPMethod
+                         parameters:(NSDictionary *)parameters
+                             scheme:(NSString *)scheme
+                               host:(NSString *)host
+                        consumerKey:(NSString *)consumerKey
+                     consumerSecret:(NSString *)consumerSecret
+                        accessToken:(NSString *)accessToken
+                        tokenSecret:(NSString *)tokenSecret
+          OAuthParametersDictionary:(NSDictionary**)outParamsDict
+{
     // check parameters
     if (host == nil || path == nil) { return nil; }
     
@@ -239,7 +270,7 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
                                               tokenSecret:tokenSecret];
     oauth.HTTPMethod = HTTPMethod;
     oauth.requestParameters = parameters;
-        
+    
     if ([[HTTPMethod uppercaseString] isEqualToString:@"GET"]) {
         // Handle GET
         NSString *encodedPath = [path stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
@@ -248,13 +279,13 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
             NSString *query = [GCOAuth queryStringFromParameters:oauth.requestParameters];
             URLString = [NSString stringWithFormat:@"%@?%@", URLString, query];
         }
-        oauth.URL = [NSURL URLWithString:URLString];                
+        oauth.URL = [NSURL URLWithString:URLString];
     } else {
         // All other HTTP methods
         NSURL *URL = [[NSURL alloc] initWithScheme:scheme host:host path:path];
         oauth.URL = URL;
-        [URL release];                
-    }    
+        [URL release];
+    }
     
     NSMutableURLRequest *request = [oauth request];
     if (![[HTTPMethod uppercaseString] isEqualToString:@"GET"] && [oauth.requestParameters count]) {
@@ -267,10 +298,19 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
         [request setValue:length forHTTPHeaderField:@"Content-Length"];
     }
     
+    // Raj OAuth:
+    if (NULL!=outParamsDict)
+    {
+        NSMutableDictionary *oAuthMutableDict = [[oauth oAuthParametersDictionary] mutableCopy];
+        [oAuthMutableDict setValue:[oauth signature] forKey:@"oauth_signature"];
+        *outParamsDict = oAuthMutableDict;
+    }
+    
     // return
     [oauth release];
     return request;
 }
+
 + (NSURLRequest *)URLRequestForPath:(NSString *)path
                       GETParameters:(NSDictionary *)parameters
                                host:(NSString *)host

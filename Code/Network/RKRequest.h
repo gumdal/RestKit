@@ -280,6 +280,10 @@ typedef void(^RKRequestDidFailLoadWithErrorBlock)(NSError *error);
  */
 @property (nonatomic, assign) NSStringEncoding defaultHTTPEncoding;
 
+// Raj OAuth:
+// If this bool is set, the OAuth query paramters will be appended to the URL. "NO" by default.
+@property (nonatomic, assign) BOOL attachOAuthParametersToURL;
+
 ///-----------------------------------------------------------------------------
 /// @name Working with the HTTP Body
 ///-----------------------------------------------------------------------------

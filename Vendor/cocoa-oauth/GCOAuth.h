@@ -42,6 +42,9 @@
     NSDictionary *OAuthParameters;
 }
 
+// Raj OAuth:
+-(NSDictionary*)oAuthParametersDictionary;
+
 /*
  Set the user agent to be used for all requests.
  */
@@ -72,6 +75,18 @@
                      consumerSecret:(NSString *)consumerSecret
                         accessToken:(NSString *)accessToken
                         tokenSecret:(NSString *)tokenSecret;
+
+// Raj OAuth: Added
++ (NSURLRequest *)URLRequestForPath:(NSString *)path
+                         HTTPMethod:(NSString *)HTTPMethod
+                         parameters:(NSDictionary *)parameters
+                             scheme:(NSString *)scheme
+                               host:(NSString *)host
+                        consumerKey:(NSString *)consumerKey
+                     consumerSecret:(NSString *)consumerSecret
+                        accessToken:(NSString *)accessToken
+                        tokenSecret:(NSString *)tokenSecret
+          OAuthParametersDictionary:(NSDictionary**)outParamsDict;
 
 /*
  Creates and returns a URL request that will perform a GET HTTP operation. All
