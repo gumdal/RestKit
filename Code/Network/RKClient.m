@@ -223,7 +223,8 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
     return isNetworkReachable;
 }
 
-- (void)configureRequest:(RKRequest *)request
+// Raj OAuth: Now this is the designated method
+- (void)configureRequest:(RKRequest *)request constructOAuthQueryParamsInURL:(BOOL)inShouldConstructOAuthQueryParams
 {
     request.additionalHTTPHeaders = _HTTPHeaders;
     request.authenticationType = self.authenticationType;
@@ -234,30 +235,41 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
     request.queue = self.requestQueue;
     request.reachabilityObserver = self.reachabilityObserver;
     request.defaultHTTPEncoding = self.defaultHTTPEncoding;
-
+    
     request.additionalRootCertificates = self.additionalRootCertificates;
     request.disableCertificateValidation = self.disableCertificateValidation;
     request.runLoopMode = self.runLoopMode;
-
+    
     // If a timeoutInterval was set on the client, we'll pass it on to the request.
     // Otherwise, we'll let the request default to its own timeout interval.
     if (self.timeoutInterval) {
         request.timeoutInterval = self.timeoutInterval;
     }
-
+    
     if (self.cacheTimeoutInterval) {
         request.cacheTimeoutInterval = self.cacheTimeoutInterval;
     }
-
+    
     // OAuth 1 Parameters
     request.OAuth1AccessToken = self.OAuth1AccessToken;
     request.OAuth1AccessTokenSecret = self.OAuth1AccessTokenSecret;
     request.OAuth1ConsumerKey = self.OAuth1ConsumerKey;
     request.OAuth1ConsumerSecret = self.OAuth1ConsumerSecret;
-
+    if (inShouldConstructOAuthQueryParams)
+    {
+        [request setAttachOAuthParametersToURL:YES];
+    }
+    
     // OAuth2 Parameters
     request.OAuth2AccessToken = self.OAuth2AccessToken;
     request.OAuth2RefreshToken = self.OAuth2RefreshToken;
+}
+
+- (void)configureRequest:(RKRequest *)request
+{
+    // Raj OAuth:
+    [self configureRequest:request
+constructOAuthQueryParamsInURL:NO];
 }
 
 - (void)setValue:(NSString *)value forHTTPHeaderField:(NSString *)header
@@ -378,6 +390,17 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
 
 - (RKRequest *)load:(NSString *)resourcePath method:(RKRequestMethod)method params:(NSObject<RKRequestSerializable> *)params delegate:(id)delegate
 {
+    // Raj OAuth:
+    return [self load:resourcePath
+               method:method
+               params:params
+             delegate:delegate
+constructOAuthQueryParamsInURL:NO];
+}
+
+// Raj OAuth: Now this is the designated method
+- (RKRequest *)load:(NSString *)resourcePath method:(RKRequestMethod)method params:(NSObject<RKRequestSerializable> *)params delegate:(id)delegate constructOAuthQueryParamsInURL:(BOOL)inShouldConstructOAuthQueryParams
+{
     RKURL *resourcePathURL = nil;
     if (method == RKRequestMethodGET) {
         resourcePathURL = [self.baseURL URLByAppendingResourcePath:resourcePath queryParameters:(NSDictionary *)params];
@@ -386,20 +409,33 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
     }
     RKRequest *request = [RKRequest requestWithURL:resourcePathURL];
     request.delegate = delegate;
-    [self configureRequest:request];
+    // Raj OAuth:
+    [self configureRequest:request constructOAuthQueryParamsInURL:inShouldConstructOAuthQueryParams];
     request.method = method;
     if (method != RKRequestMethodGET) {
         request.params = params;
     }
-
+    
     [request send];
-
+    
     return request;
+}
+
+// Raj OAuth: Designated
+- (RKRequest *)get:(NSString *)resourcePath delegate:(id)delegate constructOAuthQueryParamsInURL:(BOOL)inShouldConstructOAuthQueryParams
+{
+    return [self load:resourcePath
+               method:RKRequestMethodGET
+               params:nil
+             delegate:delegate
+constructOAuthQueryParamsInURL:inShouldConstructOAuthQueryParams];
 }
 
 - (RKRequest *)get:(NSString *)resourcePath delegate:(id)delegate
 {
-    return [self load:resourcePath method:RKRequestMethodGET params:nil delegate:delegate];
+    return [self get:resourcePath
+            delegate:delegate
+constructOAuthQueryParamsInURL:NO];
 }
 
 - (RKRequest *)get:(NSString *)resourcePath queryParameters:(NSDictionary *)queryParameters delegate:(id)delegate

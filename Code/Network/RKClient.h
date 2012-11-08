@@ -568,6 +568,8 @@
  @return The RKRequest object built and sent to the remote system
  */
 - (RKRequest *)get:(NSString *)resourcePath delegate:(NSObject<RKRequestDelegate> *)delegate;
+// Raj OAuth: Designated
+- (RKRequest *)get:(NSString *)resourcePath delegate:(id)delegate constructOAuthQueryParamsInURL:(BOOL)inShouldConstructOAuthQueryParams;
 
 /**
  Fetch a resource via an HTTP GET with a dictionary of params.
