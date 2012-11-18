@@ -96,6 +96,7 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
 @synthesize defaultHTTPEncoding = _defaultHTTPEncoding;
 @synthesize cacheTimeoutInterval = _cacheTimeoutInterval;
 @synthesize runLoopMode = _runLoopMode;
+@synthesize constructOAuth1InURLRequest;
 
 + (RKClient *)sharedClient
 {
@@ -255,7 +256,7 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
     request.OAuth1AccessTokenSecret = self.OAuth1AccessTokenSecret;
     request.OAuth1ConsumerKey = self.OAuth1ConsumerKey;
     request.OAuth1ConsumerSecret = self.OAuth1ConsumerSecret;
-    if (inShouldConstructOAuthQueryParams)
+    if (inShouldConstructOAuthQueryParams || self.constructOAuth1InURLRequest)  // Raj OAuth:
     {
         [request setAttachOAuthParametersToURL:YES];
     }

@@ -506,6 +506,9 @@
  */
 @property (nonatomic, readonly) NSString *cachePath;
 
+// Raj OAuth: This bool if set will make sure that the URL request will be appended with OAuth 1 parameters in the URL itself.
+@property (nonatomic, assign) BOOL constructOAuth1InURLRequest;
+
 
 ///-----------------------------------------------------------------------------
 /// @name Shared Client Instance
