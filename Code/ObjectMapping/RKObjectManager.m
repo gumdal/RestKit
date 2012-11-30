@@ -282,11 +282,19 @@ static dispatch_queue_t defaultMappingQueue = nil;
 
 - (void)loadObjectsAtResourcePath:(NSString *)resourcePath delegate:(id<RKObjectLoaderDelegate>)delegate
 {
+    [self loadObjectsAtResourcePath:resourcePath
+                           delegate:delegate
+                       objectLoader:NULL];
+}
+
+- (void)loadObjectsAtResourcePath:(NSString *)resourcePath delegate:(id<RKObjectLoaderDelegate>)delegate objectLoader:(RKObjectLoader**)outObjectLoader
+{
     RKObjectLoader *loader = [self loaderWithResourcePath:resourcePath];
     loader.delegate = delegate;
     loader.method = RKRequestMethodGET;
-
+    
     [loader send];
+    *outObjectLoader = loader;
 }
 
 /////////////////////////////////////////////////////////////
