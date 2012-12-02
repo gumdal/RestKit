@@ -287,6 +287,7 @@ static dispatch_queue_t defaultMappingQueue = nil;
                        objectLoader:NULL];
 }
 
+// Raj:
 - (void)loadObjectsAtResourcePath:(NSString *)resourcePath delegate:(id<RKObjectLoaderDelegate>)delegate objectLoader:(RKObjectLoader**)outObjectLoader
 {
     RKObjectLoader *loader = [self loaderWithResourcePath:resourcePath];

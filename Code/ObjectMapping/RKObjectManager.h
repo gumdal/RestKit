@@ -329,7 +329,7 @@ typedef enum {
  set on the mapping provider.
  */
 - (void)loadObjectsAtResourcePath:(NSString *)resourcePath delegate:(id<RKObjectLoaderDelegate>)delegate;
-// Designated
+// Raj: Designated
 - (void)loadObjectsAtResourcePath:(NSString *)resourcePath delegate:(id<RKObjectLoaderDelegate>)delegate objectLoader:(RKObjectLoader**)outObjectLoader;
 
 ////////////////////////////////////////////////////////
