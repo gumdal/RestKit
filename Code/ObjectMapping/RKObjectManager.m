@@ -295,7 +295,8 @@ static dispatch_queue_t defaultMappingQueue = nil;
     loader.method = RKRequestMethodGET;
     
     [loader send];
-    *outObjectLoader = loader;
+    if (NULL!=outObjectLoader)
+        *outObjectLoader = loader;
 }
 
 /////////////////////////////////////////////////////////////
