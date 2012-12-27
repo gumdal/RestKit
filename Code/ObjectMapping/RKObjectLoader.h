@@ -53,6 +53,9 @@ typedef void(^RKObjectLoaderDidLoadObjectsDictionaryBlock)(NSDictionary *diction
 
 @optional
 
+// Raj:
+-(void)objectLoaderDidBeginLoading:(RKObjectLoader*)objectLoader;
+
 /**
  When implemented, sent to the delegate when the object laoder has completed successfully
  and loaded a collection of objects. All objects mapped from the remote payload will be returned

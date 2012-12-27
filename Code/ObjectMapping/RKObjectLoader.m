@@ -396,6 +396,12 @@
         }
     }
 
+    // Raj:
+    if ([(NSObject<RKObjectLoaderDelegate>*)_delegate respondsToSelector:@selector(objectLoaderDidBeginLoading:)])
+    {
+        [(NSObject<RKObjectLoaderDelegate>*)_delegate objectLoaderDidBeginLoading:self];
+    }
+    
     return [super prepareURLRequest];
 }
 
