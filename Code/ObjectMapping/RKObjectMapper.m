@@ -352,7 +352,19 @@
         id mappableData = self.sourceObject;
         if ([mappingsForContext rootKeyPath] != nil) {
             NSString *rootKeyPath = [mappingsForContext rootKeyPath];
-            mappableData = [self.sourceObject valueForKeyPath:rootKeyPath];
+            // Raj:
+            /*
+             We get errors like:
+             2013-04-26 16:48:17.405 Snakes[96117:1a903] D restkit.object_mapping:RKObjectMapper.m:336 Performing object mapping sourceObject: (
+             "Nonce already used: A310DC05-1298-4541-9D84-0BF29D4275FC"
+             )
+             the app crashes here, probably because the above error is not Rest complaint? Investigate!
+             */
+            NSArray *allSourceKeys = [self.sourceObject allKeys];
+            if ([allSourceKeys containsObject:rootKeyPath])
+            {
+                mappableData = [self.sourceObject valueForKeyPath:rootKeyPath];
+            }
             RKLogDebug(@"Selected object mapping has rootKeyPath. Apply valueForKeyPath to mappable data: %@", rootKeyPath);
         }
 
