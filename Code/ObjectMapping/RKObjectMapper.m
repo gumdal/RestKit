@@ -360,12 +360,16 @@
              )
              the app crashes here, probably because the above error is not Rest complaint? Investigate!
              */
-            NSArray *allSourceKeys = [self.sourceObject allKeys];
-            if ([allSourceKeys containsObject:rootKeyPath])
+            // App crashes coz the nonce already used error comes in an array, so we perform a check for dictionary type object first
+            if ([self.sourceObject isKindOfClass:[NSDictionary class]])
             {
-                mappableData = [self.sourceObject valueForKeyPath:rootKeyPath];
+                NSArray *allSourceKeys = [self.sourceObject allKeys];
+                if ([allSourceKeys containsObject:rootKeyPath])
+                {
+                    mappableData = [self.sourceObject valueForKeyPath:rootKeyPath];
+                }
+                RKLogDebug(@"Selected object mapping has rootKeyPath. Apply valueForKeyPath to mappable data: %@", rootKeyPath);
             }
-            RKLogDebug(@"Selected object mapping has rootKeyPath. Apply valueForKeyPath to mappable data: %@", rootKeyPath);
         }
 
         if (mappableData) {
