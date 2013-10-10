@@ -378,7 +378,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
         if (self.attachOAuthParametersToURL)
         {
             NSMutableString *absoluteURLString = [NSMutableString stringWithString:[[_URLRequest URL] absoluteString]];
-            NSLog(@"Absolute URL String = %@", absoluteURLString);
+//            NSLog(@"Absolute URL String = %@", absoluteURLString);
             [absoluteURLString appendString:@"?"];
             
             NSMutableArray *entries = [NSMutableArray array];
