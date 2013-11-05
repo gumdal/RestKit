@@ -301,7 +301,7 @@ static BOOL GCOAuthUseHTTPSCookieStorage = YES;
     // Raj OAuth:
     if (NULL!=outParamsDict)
     {
-        NSMutableDictionary *oAuthMutableDict = [[oauth oAuthParametersDictionary] mutableCopy];
+        NSMutableDictionary *oAuthMutableDict = [[[oauth oAuthParametersDictionary] mutableCopy] autorelease];
         [oAuthMutableDict setValue:[oauth signature] forKey:@"oauth_signature"];
         *outParamsDict = oAuthMutableDict;
     }
