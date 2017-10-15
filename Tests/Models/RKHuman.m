@@ -32,16 +32,24 @@
 @dynamic createdAt;
 @dynamic updatedAt;
 @dynamic favoriteColors;
+@dynamic mutableFavoriteColors;
 
 @dynamic favoriteCatID;
 @dynamic favoriteCat;
 @dynamic cats;
 @dynamic catIDs;
 @dynamic catsInOrderByAge;
+@dynamic isHappy;
+@dynamic likesDogs;
 
-- (NSString *)polymorphicResourcePath
-{
-    return @"/this/is/the/path";
-}
+@dynamic house;
+@dynamic landlord;
+@dynamic roommates;
+@dynamic tenants;
+@dynamic residence;
+@dynamic housesResidedAt;
+@dynamic friends;
+@dynamic friendsInTheOrderWeMet;
+@dynamic houseID;
 
 @end

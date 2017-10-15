@@ -21,23 +21,22 @@
 #import <CoreData/CoreData.h>
 
 @class RKMapping, RKObjectManager;
+@protocol RKManagedObjectCaching;
 
 /**
- Instances of RKManagedObjectImporter perform bulk imports of managed objects into a persistent store from
- source files (typically in JSON or XML format) using object mappings. The importer provides functionality
- for updating an existing persistent store or creating a seed database that can be used to bootstrap a new
- persistent store with an initial data set.
+ Instances of `RKManagedObjectImporter` perform bulk imports of managed objects into a persistent store from source files (typically in JSON or XML format) using object mappings. The importer provides functionality for updating an existing persistent store or creating a seed database that can be used to bootstrap a new persistent store with an initial data set.
 
- The importer requires that the source files have a MIME type that is identifiable by file extension and be
- parsable using a parser registered with the shared parser registry.
+ The importer requires that the source files have a MIME type that is identifiable by file extension and be parsable using a parser registered with the shared parser registry.
 
- @see RKParserRegistry
+ @see RKMIMETypeSerialization
  */
 @interface RKManagedObjectImporter : NSObject
 
-///-----------------------------------------------------------------------------
+- (instancetype)init __attribute__((unavailable("Invoke initWithManagedObjectModel:storePath: instead.")));
+
+///-------------------------------
 /// @name Initializing an Importer
-///-----------------------------------------------------------------------------
+///-------------------------------
 
 /**
  Initializes the receiver with a given managed object model and a path at which a SQLite persistent store
@@ -55,7 +54,7 @@
  @warning As this initialization code path is typical for generating seed databases, the value of
     `resetsStoreBeforeImporting` is initialized to **YES**.
  */
-- (id)initWithManagedObjectModel:(NSManagedObjectModel *)managedObjectModel storePath:(NSString *)storePath;
+- (instancetype)initWithManagedObjectModel:(NSManagedObjectModel *)managedObjectModel storePath:(NSString *)storePath NS_DESIGNATED_INITIALIZER;
 
 /**
  Initializes the receiver with a given persistent store in which to persist imported managed objects.
@@ -69,7 +68,7 @@
     managed object model are determined from the given persistent store and a new managed object context with
     the private queue concurrency type is constructed.
  */
-- (id)initWithPersistentStore:(NSPersistentStore *)persistentStore;
+- (instancetype)initWithPersistentStore:(NSPersistentStore *)persistentStore NS_DESIGNATED_INITIALIZER;
 
 /**
  A Boolean value indicating whether existing managed objects in the persistent store should
@@ -80,9 +79,9 @@
  */
 @property (nonatomic, assign) BOOL resetsStoreBeforeImporting;
 
-///-----------------------------------------------------------------------------
+///----------------------------------
 /// @name Accessing Core Data Details
-///-----------------------------------------------------------------------------
+///----------------------------------
 
 /**
  The persistent store in which imported managed objects will be persisted.
@@ -111,6 +110,13 @@
  
  */
 @property (nonatomic, strong, readonly) NSString *storePath;
+
+/**
+ A class that conforms to the `RKManagedObjectCaching` protocol that should be used when performing the import.
+ 
+ **Default**: An instance of `RKInMemoryManagedObjectCache`.
+ */
+@property (nonatomic, strong) id<RKManagedObjectCaching> managedObjectCache;
 
 ///-----------------------------------------------------------------------------
 /// @name Importing Managed Objects

@@ -27,6 +27,9 @@
 #import "RKObjectMapping.h"
 #import "RKMappingOperation.h"
 #import "RKMappingErrors.h"
+#import "RKPropertyInspector.h"
+#import "RKValueTransformers.h"
+#import "RKBooleanClass.h"
 
 // Set Logging Component
 #undef RKLogComponent
@@ -36,7 +39,7 @@
 @property (nonatomic, strong) id object;
 @property (nonatomic, strong) RKRequestDescriptor *requestDescriptor;
 
-- (id)initWithObject:(id)object requestDescriptor:(RKRequestDescriptor *)requestDescriptor;
+- (instancetype)initWithObject:(id)object requestDescriptor:(RKRequestDescriptor *)requestDescriptor;
 - (NSDictionary *)mapObjectToParameters:(NSError **)error;
 
 // Convenience methods
@@ -52,7 +55,7 @@
     return [parameterization mapObjectToParameters:error];
 }
 
-- (id)initWithObject:(id)object requestDescriptor:(RKRequestDescriptor *)requestDescriptor
+- (instancetype)initWithObject:(id)object requestDescriptor:(RKRequestDescriptor *)requestDescriptor
 {
     NSParameterAssert(object);
     NSParameterAssert(requestDescriptor);
@@ -102,23 +105,48 @@
 - (void)mappingOperation:(RKMappingOperation *)operation didSetValue:(id)value forKeyPath:(NSString *)keyPath usingMapping:(RKAttributeMapping *)mapping
 {
     id transformedValue = nil;
-    if ([value isKindOfClass:[NSDate class]]) {
-        // Date's are not natively serializable, must be encoded as a string
-        @synchronized(mapping.objectMapping.preferredDateFormatter) {
-            transformedValue = [mapping.objectMapping.preferredDateFormatter stringForObjectValue:value];
+    if (value == nil) {
+        if (mapping.objectMapping.assignsDefaultValueForMissingAttributes) {
+            // Serialize nil values as null
+            transformedValue = [NSNull null];
         }
+    } else if ([value isKindOfClass:[NSDate class]]) {
+        [mapping.valueTransformer transformValue:value toValue:&transformedValue ofClass:[NSString class] error:nil];
     } else if ([value isKindOfClass:[NSDecimalNumber class]]) {
         // Precision numbers are serialized as strings to work around Javascript notation limits
         transformedValue = [(NSDecimalNumber *)value stringValue];
+    } else if ([value isKindOfClass:[NSSet class]]) {
+        // NSSets are not natively serializable, so let's just turn it into an NSArray
+        transformedValue = [value allObjects];
     } else if ([value isKindOfClass:[NSOrderedSet class]]) {
         // NSOrderedSets are not natively serializable, so let's just turn it into an NSArray
         transformedValue = [value array];
+    } else {
+        Class propertyClass = RKPropertyInspectorGetClassForPropertyAtKeyPathOfObject(mapping.sourceKeyPath, operation.sourceObject);
+        if ([propertyClass isSubclassOfClass:RK_BOOLEAN_CLASS]) {
+            transformedValue = @([value boolValue]);
+        }
     }
 
     if (transformedValue) {
         RKLogDebug(@"Serialized %@ value at keyPath to %@ (%@)", NSStringFromClass([value class]), NSStringFromClass([transformedValue class]), value);
-        [operation.destinationObject setValue:transformedValue forKey:keyPath];
+        [operation.destinationObject setValue:transformedValue forKeyPath:keyPath];
     }
+}
+
+- (BOOL)mappingOperation:(RKMappingOperation *)operation shouldSetValue:(id)value forKeyPath:(NSString *)keyPath usingMapping:(RKPropertyMapping *)propertyMapping
+{
+    NSArray *keyPathComponents = [keyPath componentsSeparatedByString:@"."];
+    id currentValue = operation.destinationObject;
+    for (NSString *key in keyPathComponents) {
+        id value = [currentValue valueForKey:key];
+        if (value == nil) {
+            value = [NSMutableDictionary new];
+            [currentValue setValue:value forKey:key];
+        }
+        currentValue = value;
+    }
+    return YES;
 }
 
 @end

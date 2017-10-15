@@ -41,13 +41,12 @@
  Initializes the receiver with a given entity, attribute, and managed object context.
 
  @param entity The Core Data entity description for the managed objects being cached.
- @param attributeName The name of an attribute within the cached entity that acts as the cache key.
- @param context The managed object context the cache retrieves the cached
-    objects from
+ @param attributeNames An array of attribute names used as the cache keys.
+ @param context The managed object context the cache retrieves the cached objects from.
  @return The receiver, initialized with the given entity, attribute, and managed object
     context.
  */
-- (id)initWithEntity:(NSEntityDescription *)entity attribute:(NSString *)attributeName managedObjectContext:(NSManagedObjectContext *)context;
+- (instancetype)initWithEntity:(NSEntityDescription *)entity attributes:(NSArray *)attributeNames managedObjectContext:(NSManagedObjectContext *)context;
 
 ///-----------------------------
 /// @name Getting Cache Identity
@@ -59,9 +58,9 @@
 @property (nonatomic, readonly) NSEntityDescription *entity;
 
 /**
- An attribute that is part of the cached entity that acts as the cache key.
+ An array of attribute names specifying attributes of the cached entity that act as the cache key.
  */
-@property (nonatomic, readonly) NSString *attribute;
+@property (nonatomic, readonly) NSArray *attributes;
 
 /**
  The managed object context the receiver fetches cached objects from.
@@ -69,10 +68,11 @@
 @property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
 
 /**
- A Boolean value determining if the receiever monitors the managed object context
- for changes and updates the cache entries using the notifications emitted.
+ The queue on which to dispatch callbacks for asynchronous operations. When `nil`, the main queue is used.
+ 
+ **Default**: `nil`
  */
-@property (nonatomic, assign) BOOL monitorsContextForChanges;
+@property (nonatomic, assign) dispatch_queue_t callbackQueue;
 
 ///-------------------------------------
 /// @name Loading and Flushing the Cache
@@ -82,14 +82,17 @@
  Loads the cache by finding all instances of the configured entity and building
  an association between the value of the cached attribute's value and the
  managed object ID for the object.
+ 
+ @param completion A block to execute when the cache has finished loading.
  */
-- (void)load;
+- (void)load:(void (^)(void))completion;
 
 /**
- Flushes the cache by releasing all cache attribute value to managed object ID
- associations.
+ Flushes the cache by releasing all cache attribute value to managed object ID associations.
+ 
+ @param completion A block to execute when the cache has finished flushing.
  */
-- (void)flush;
+- (void)flush:(void (^)(void))completion;
 
 ///-----------------------------
 /// @name Inspecting Cache State
@@ -98,29 +101,27 @@
 /**
  A Boolean value indicating if the cache has loaded associations between cache attribute values and managed object ID's.
  */
-- (BOOL)isLoaded;
+@property (nonatomic, getter=isLoaded, readonly) BOOL loaded;
 
 /**
  Returns a count of the total number of cached objects.
  */
-- (NSUInteger)count;
+@property (nonatomic, readonly) NSUInteger count;
 
 /**
- Returns the total number of cached objects with a given value for the attribute acting as the cache key.
+ Returns the total number of cached objects whose attributes match the values in the given dictionary of attribute values.
 
- @param attributeValue The value for the cache key attribute to retrieve
-    a count of the objects with a matching value.
- @return The number of objects in the cache with the given value for the cache
-    attribute of the receiver.
+ @param attributeValues The value for the cache key attribute to retrieve a count of the objects with a matching value.
+ @return The number of objects in the cache with the given value for the cache attribute of the receiver.
  */
-- (NSUInteger)countWithAttributeValue:(id)attributeValue;
+- (NSUInteger)countWithAttributeValues:(NSDictionary *)attributeValues;
 
 /**
  Returns the number of unique attribute values contained within the receiver.
 
  @return The number of unique attribute values within the receiver.
  */
-- (NSUInteger)countOfAttributeValues;
+@property (nonatomic, readonly) NSUInteger countOfAttributeValues;
 
 /**
  Returns a Boolean value that indicates whether a given object is present
@@ -135,50 +136,64 @@
  Returns a Boolean value that indicates whether one of more objects is present
  in the cache with a given value of the cache key attribute.
 
- @param attributeValue The value with which to check the cache for objects with a matching value.
+ @param attributeValues The value with which to check the cache for objects with a matching value.
  @return YES if one or more objects with the given value for the cache key attribute is present in the cache, otherwise NO.
  */
-- (BOOL)containsObjectWithAttributeValue:(id)attributeValue;
+- (BOOL)containsObjectWithAttributeValues:(NSDictionary *)attributeValues;
 
 /**
- Returns the first object with a matching value for the cache key attribute
- in a given managed object context.
+ Returns the first object with a matching value for the cache key attributes in a given managed object context.
 
- @param attributeValue A value for the cache key attribute.
+ @param attributeValues A value for the cache key attribute.
  @param context The managed object context to retrieve the object from.
  @return An object with the value of attribute matching attributeValue or nil.
  */
-- (NSManagedObject *)objectWithAttributeValue:(id)attributeValue inContext:(NSManagedObjectContext *)context;
+- (NSManagedObject *)objectWithAttributeValues:(NSDictionary *)attributeValues inContext:(NSManagedObjectContext *)context;
 
 /**
  Returns the collection of objects with a matching value for the cache key attribute in a given managed object context.
 
- @param attributeValue A value for the cache key attribute.
+ @param attributeValues A value for the cache key attribute.
  @param context The managed object context to retrieve the objects from.
  @return An array of objects with the value of attribute matching attributeValue or an empty array.
  */
-- (NSArray *)objectsWithAttributeValue:(id)attributeValue inContext:(NSManagedObjectContext *)context;
+- (NSSet *)objectsWithAttributeValues:(NSDictionary *)attributeValues inContext:(NSManagedObjectContext *)context;
 
 ///------------------------------
 /// @name Managing Cached Objects
 ///------------------------------
 
 /**
- Adds a managed object to the cache.
+ Asynchronously adds a managed object to the cache.
 
  The object must be an instance of the cached entity.
 
- @param object The managed object to add to the cache.
+ @param managedObjects The managed object to add to the cache.
+ @param completion An optional block to execute once the object has been added to the cache.
  */
-- (void)addObject:(NSManagedObject *)object;
+- (void)addObjects:(NSSet *)managedObjects completion:(void (^)(void))completion;
 
 /**
- Removes a managed object from the cache.
+ Asynchronously removes a managed object from the cache.
 
  The object must be an instance of the cached entity.
 
- @param object The managed object to remove from the cache.
+ @param managedObjects The managed object to remove from the cache.
+ @param completion An optional block to execute once the object has been removed from the cache.
  */
-- (void)removeObject:(NSManagedObject *)object;
+- (void)removeObjects:(NSSet *)managedObjects completion:(void (^)(void))completion;
 
+@end
+
+/*
+ Deprecated in 0.20.1
+ 
+ All methods below now accept a completion block
+ */
+@interface RKEntityByAttributeCache (Deprecations)
+- (void)load DEPRECATED_ATTRIBUTE; // use `load:`
+- (void)flush DEPRECATED_ATTRIBUTE; // use `flush:`
+- (void)addObject:(NSManagedObject *)object DEPRECATED_ATTRIBUTE; // use `addObjects:completion:`
+- (void)removeObject:(NSManagedObject *)object DEPRECATED_ATTRIBUTE; // use `removeObjects:completion:`
+@property (nonatomic, assign) BOOL monitorsContextForChanges DEPRECATED_ATTRIBUTE; // No longer applies. Consumers are responsible for context change monitoring. Handled by `RKInMemoryManagedObjectCache`
 @end

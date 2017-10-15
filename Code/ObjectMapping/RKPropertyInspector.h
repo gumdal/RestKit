@@ -23,12 +23,39 @@
 @class NSEntityDescription;
 
 /**
- The `RKPropertyInspector` class provides an interface for introspecting the properties and attributes of classes using the reflection capabilities of the Objective-C runtime. Once inspected, the properties and types are cached.
+ * The object used to store attributes for each property; used as the value in the class dictionary.
  */
-@interface RKPropertyInspector : NSObject {
-  @protected
-    NSCache *_propertyNamesToTypesCache;
-}
+@interface RKPropertyInspectorPropertyInfo : NSObject
+
+/**
+ Creates a new RKPropertyInspectorPropertyInfo instance with the given information
+ */
++ (instancetype)propertyInfoWithName:(NSString *)name keyValueClass:(Class)kvClass isPrimitive:(BOOL)isPrimitive;
+
+/**
+ The name of the property
+ */
+@property (nonatomic, copy, readonly) NSString *name;
+
+/**
+ The class used for key-value coding access to the property.
+ 
+ If the property is an object type, then the class set for this key will be the type of the property. If the property is a primitive, then the class set for the key will be the boxed type used for KVC access to the property. For example, an `NSInteger` property is boxed to an `NSNumber` for KVC purposes.
+ */
+@property (nonatomic, strong, readonly) Class keyValueCodingClass;
+
+/**
+ A BOOL value that indicates if the property is a primitive (non-object) value.
+ */
+@property (nonatomic, readonly) BOOL isPrimitive;
+
+@end
+
+
+/**
+ The `RKPropertyInspector` class provides an interface for introspecting the properties and attributes of classes using the reflection capabilities of the Objective-C runtime. Once inspected, the properties inspection details are cached.
+ */
+@interface RKPropertyInspector : NSObject
 
 ///-----------------------------------------------
 /// @name Retrieving the Shared Inspector Instance
@@ -46,32 +73,45 @@
 ///------------------------------------------------------
 
 /**
- Returns a dictionary of names and types for the properties of a given class.
-
- @param objectClass The class to retrieve the property name and types for.
- @return A dictionary containing metadata about the properties of the given class, where the keys in the dictionary are the property names and the values are `Class` objects specifying the type of the property.
+ Returns a dictionary keyed by property name that includes the key-value coding class of the property and a Boolean indicating if the property is backed by a primitive (non-object) value. The RKPropertyInspectorPropertyInfo object for each property includes details about the key-value coding class representing the property and if the property is backed by a primitive type.
+ 
+ @param objectClass The class to inspect the properties of.
+ @return A dictionary keyed by property name that includes details about all declared properties of the class.
  */
-- (NSDictionary *)propertyNamesAndTypesForClass:(Class)objectClass;
+- (NSDictionary *)propertyInspectionForClass:(Class)objectClass;
 
 /**
  Returns the `Class` object specifying the type of the property with given name on a class.
 
  @param propertyName The name of the property to retrieve the type of.
  @param objectClass The class to retrieve the property from.
+ @param isPrimitive A pointer to a Boolean value to set indicating if the specified property is of a primitive (non-object) type.
  @return A `Class` object specifying the type of the requested property.
  */
-- (Class)typeForProperty:(NSString *)propertyName ofClass:(Class)objectClass;
-
-///------------------------------------------------------
-/// @name Retrieving the Properties and Types for a Class
-///------------------------------------------------------
-
-/**
- Returns the name of a property when provided the name of a property obtained via the `property_getAttributes` reflection API.
-
- @param attributeString A string object encoding attribute information.
- @return The class name for the property type encoded in the given attribute string or `@"NULL"` if the property does not have an object type (the declared property is for a primitive type).
- */
-+ (NSString *)propertyTypeFromAttributeString:(NSString *)attributeString;
+- (Class)classForPropertyNamed:(NSString *)propertyName ofClass:(Class)objectClass isPrimitive:(BOOL *)isPrimitive;
 
 @end
+
+///----------------------------
+/// @name Convenience Functions
+///----------------------------
+
+/**
+ Returns the class of the attribute or relationship property at the key path of the given object.
+ 
+ Given a key path to a string property, this will return an `NSString`, etc.
+ 
+ @param keyPath The key path to the property to retrieve the class of.
+ @param object The object to evaluate.
+ @return The class of the property at the given key path.
+ */
+Class RKPropertyInspectorGetClassForPropertyAtKeyPathOfObject(NSString *keyPath, id object);
+
+/**
+ Returns a Boolean value indicating if the property at the specified key path for a given object is modeled by a primitive type.
+ 
+ @param keyPath The key path to inspect the property of.
+ @param object The object to evaluate.
+ @return `YES` if the property is a primitive, else `NO`.
+ */
+BOOL RKPropertyInspectorIsPropertyAtKeyPathOfObjectPrimitive(NSString *keyPath, id object);

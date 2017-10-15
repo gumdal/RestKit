@@ -27,15 +27,10 @@
 // The error domain for RestKit generated errors
 extern NSString * const RKErrorDomain;
 
-typedef enum {
-    RKObjectLoaderRemoteSystemError             =   1,
-    RKRequestBaseURLOfflineError                =   2,
-    RKRequestUnexpectedResponseError            =   3,
-    RKObjectLoaderUnexpectedResponseError       =   4,
-    RKRequestConnectionTimeoutError             =   5,
-    RKUnsupportedMIMETypeError                  =   6,
-    RKParserRegistryEmptyDataError              =   7
-} RKRestKitError;
+typedef NS_ENUM(NSInteger, RKRestKitError) {
+    RKUnsupportedMIMETypeError                  =   1,
+    RKOperationCancelledError                   =   2
+} ;
 
 
 ///--------------------------------------
@@ -46,7 +41,7 @@ typedef enum {
  The key RestKit generated errors will appear at within an NSNotification
  indicating an error
  */
-extern NSString * const RKErrorNotificationErrorKey;
+extern NSString *const RKErrorNotificationErrorKey;
 
 /**
  When RestKit constructs an NSError object from one or more RKErrorMessage
@@ -57,8 +52,8 @@ extern NSString * const RKErrorNotificationErrorKey;
 
  @see RKObjectMappingResult
  */
-extern NSString * const RKObjectMapperErrorObjectsKey;
+extern NSString *const RKObjectMapperErrorObjectsKey;
 
-extern NSString * const RKDetailedErrorsKey; // When multiple errors occur, they are stored in a composite error
+extern NSString *const RKDetailedErrorsKey; // When multiple errors occur, they are stored in a composite error
 
-extern NSString * const RKMIMETypeErrorKey;
+extern NSString *const RKMIMETypeErrorKey;

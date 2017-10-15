@@ -18,6 +18,8 @@
 //  limitations under the License.
 //
 
+#import <Foundation/Foundation.h>
+
 /**
  `RKMapping` is an abstract class for objects defining RestKit object mappings. Its interface is common to all object mapping classes, including its concrete subclasses `RKObjectMapping` and `RKDynamicMapping`.
  */
@@ -33,8 +35,8 @@
  When enabled, each key/value pair in the resolved dictionary will be mapped as a separate entity. This is useful when you have a JSON structure similar to:
 
      { "users": {
-        "blake": { "id": 1234, "email": "blake@restkit.org" },
-        "rachit": { "id": 5678", "email": "rachit@restkit.org" }
+        "blake":  { "id": 1234, "email": "blake@restkit.org" },
+        "rachit": { "id": 5678, "email": "rachit@restkit.org" }
         }
      }
 

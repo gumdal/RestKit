@@ -7,7 +7,7 @@
 //
 
 #import "RKTwitterViewController.h"
-#import "RKTStatus.h"
+#import "RKTweet.h"
 
 @interface RKTwitterViewController (Private)
 - (void)loadData;
@@ -25,17 +25,16 @@
                             success:^(RKObjectRequestOperation *operation, RKMappingResult *mappingResult) {
                               NSArray* statuses = [mappingResult array];
                               NSLog(@"Loaded statuses: %@", statuses);
-                              [_statuses release];
-                              _statuses = [statuses retain];
+                              _statuses = statuses;
                               if(self.isViewLoaded)
                                 [_tableView reloadData];
                             }
                             failure:^(RKObjectRequestOperation *operation, NSError *error) {
-                              UIAlertView *alert = [[[UIAlertView alloc] initWithTitle:@"Error"
+                              UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error"
                                                                                message:[error localizedDescription]
                                                                               delegate:nil
                                                                      cancelButtonTitle:@"OK"
-                                                                     otherButtonTitles:nil] autorelease];
+                                                                     otherButtonTitles:nil];
                               [alert show];
                               NSLog(@"Hit error: %@", error);
                             }];
@@ -47,11 +46,11 @@
 
     // Setup View and Table View
     self.title = @"RestKit Tweets";
-    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleBlackTranslucent;
+    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
     self.navigationController.navigationBar.tintColor = [UIColor blackColor];
-    self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(loadTimeline)] autorelease];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(loadTimeline)];
 
-    UIImageView *imageView = [[[UIImageView alloc] initWithImage:[UIImage imageNamed:@"BG.png"]] autorelease];
+    UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"BG.png"]];
     imageView.frame = CGRectOffset(imageView.frame, 0, -64);
 
     [self.view insertSubview:imageView atIndex:0];
@@ -66,12 +65,6 @@
     [self loadTimeline];
 }
 
-- (void)dealloc
-{
-    [_tableView release];
-    [_statuses release];
-    [super dealloc];
-}
 
 #pragma mark UITableViewDelegate methods
 
@@ -93,13 +86,13 @@
     NSString *reuseIdentifier = @"Tweet Cell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
     if (nil == cell) {
-        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier] autorelease];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier];
         cell.textLabel.font = [UIFont systemFontOfSize:14];
         cell.textLabel.numberOfLines = 0;
         cell.textLabel.backgroundColor = [UIColor clearColor];
         cell.contentView.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"listbg.png"]];
     }
-    RKTStatus* status = [_statuses objectAtIndex:indexPath.row];
+    RKTweet* status = [_statuses objectAtIndex:indexPath.row];
     cell.textLabel.text = [status text];
     cell.detailTextLabel.text = status.user.screenName;
     return cell;

@@ -20,12 +20,29 @@
 
 #import "RKObjectMappingOperationDataSource.h"
 #import "RKObjectMapping.h"
+#import "RKMappingOperation.h"
 
 @implementation RKObjectMappingOperationDataSource
 
-- (id)mappingOperation:(RKMappingOperation *)mappingOperation targetObjectForRepresentation:(NSDictionary *)representation withMapping:(RKObjectMapping *)mapping
+- (id)mappingOperation:(RKMappingOperation *)mappingOperation targetObjectForRepresentation:(NSDictionary *)representation
+           withMapping:(RKObjectMapping *)mapping inRelationship:(RKRelationshipMapping *)relationshipMapping
 {
     return [mapping.objectClass new];
+}
+
+- (id)mappingOperation:(RKMappingOperation *)mappingOperation targetObjectForMapping:(RKObjectMapping *)mapping inRelationship:(RKRelationshipMapping *)relationshipMapping
+{
+    return [mapping.objectClass new];
+}
+
+- (BOOL)mappingOperationShouldCollectMappingInfo:(RKMappingOperation *)mappingOperation
+{
+    return NO;
+}
+
+- (BOOL)mappingOperationShouldSetUnchangedValues:(RKMappingOperation *)mappingOperation
+{
+    return [mappingOperation isNewDestinationObject];
 }
 
 @end

@@ -8,10 +8,9 @@
 
 #import "RKTestEnvironment.h"
 #import "NSManagedObjectContext+RKAdditions.h"
-#import "NSEntityDescription+RKAdditions.h"
 #import "RKHuman.h"
 
-@interface NSManagedObjectContext_RKAdditionsTest : SenTestCase
+@interface NSManagedObjectContext_RKAdditionsTest : XCTestCase
 
 @end
 
@@ -27,64 +26,10 @@
     [RKTestFactory tearDown];
 }
 
-- (void)testFetchObjectForEntityWithValueForPrimaryKeyAttribute
-{
-    RKManagedObjectStore *managedObjectStore = [RKTestFactory managedObjectStore];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.persistentStoreManagedObjectContext];
-    entity.primaryKeyAttributeName = @"railsID";
-
-    RKHuman *human = [NSEntityDescription insertNewObjectForEntityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.persistentStoreManagedObjectContext];
-    human.railsID = [NSNumber numberWithInt:12345];
-    [managedObjectStore.persistentStoreManagedObjectContext save:nil];
-
-    RKHuman *foundHuman = [managedObjectStore.persistentStoreManagedObjectContext fetchObjectForEntity:entity withValueForPrimaryKeyAttribute:[NSNumber numberWithInt:12345]];
-    assertThat(foundHuman, is(equalTo(human)));
-}
-
-- (void)testFetchObjectForEntityForNameWithValueForPrimaryKeyAttribute
-{
-    RKManagedObjectStore *managedObjectStore = [RKTestFactory managedObjectStore];
-    NSManagedObjectContext *context = [[RKTestFactory managedObjectStore] newChildManagedObjectContextWithConcurrencyType:NSMainQueueConcurrencyType];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.persistentStoreManagedObjectContext];
-    entity.primaryKeyAttributeName = @"railsID";
-
-    NSEntityDescription *childEntity = [NSEntityDescription entityForName:@"RKHuman" inManagedObjectContext:context];
-    childEntity.primaryKeyAttributeName = @"railsID";
-    RKHuman *human = [NSEntityDescription insertNewObjectForEntityForName:@"RKHuman" inManagedObjectContext:context];
-    human.railsID = [NSNumber numberWithInt:12345];
-    NSError *error = nil;
-    BOOL success = [context save:&error];
-    assertThatBool(success, is(equalToBool(YES)));
-    assertThat(error, is(nilValue()));
-
-    NSUInteger count = [context countForEntityForName:@"RKHuman" predicate:nil error:nil];
-    assertThatInteger(count, is(equalToInteger(1)));
-
-    RKHuman *foundHuman = [managedObjectStore.persistentStoreManagedObjectContext fetchObjectForEntityForName:@"RKHuman" withValueForPrimaryKeyAttribute:[NSNumber numberWithInt:12345]];
-    assertThat(foundHuman, is(notNilValue()));
-
-    foundHuman = [context fetchObjectForEntityForName:@"RKHuman" withValueForPrimaryKeyAttribute:[NSNumber numberWithInt:12345]];
-    assertThat(foundHuman, is(equalTo(human)));
-}
-
-- (void)testFetchObjectForEntityByPrimaryKeyWithStringValueForNumericProperty
-{
-    RKManagedObjectStore *managedObjectStore = [RKTestFactory managedObjectStore];
-    NSEntityDescription *entity = [NSEntityDescription entityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.persistentStoreManagedObjectContext];
-    entity.primaryKeyAttributeName = @"railsID";
-
-    RKHuman *human = [NSEntityDescription insertNewObjectForEntityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.persistentStoreManagedObjectContext];
-    human.railsID = [NSNumber numberWithInt:12345];
-    [managedObjectStore.persistentStoreManagedObjectContext save:nil];
-
-    RKHuman *foundHuman = [managedObjectStore.persistentStoreManagedObjectContext fetchObjectForEntity:entity withValueForPrimaryKeyAttribute:@"12345"];
-    assertThat(foundHuman, is(equalTo(human)));
-}
-
 - (void)testSaveToPersistentStore
 {
     RKManagedObjectStore *managedObjectStore = [RKTestFactory managedObjectStore];
-    RKHuman *human = [NSEntityDescription insertNewObjectForEntityForName:@"RKHuman" inManagedObjectContext:managedObjectStore.mainQueueManagedObjectContext];
+    RKHuman *human = [NSEntityDescription insertNewObjectForEntityForName:@"Human" inManagedObjectContext:managedObjectStore.mainQueueManagedObjectContext];
     human.name = @"Test";
     assertThatBool([human.objectID isTemporaryID], is(equalToBool(YES)));
 
@@ -94,11 +39,11 @@
     [managedObjectStore.mainQueueManagedObjectContext refreshObject:human mergeChanges:YES];
     assertThatBool([human isNew], is(equalToBool(NO)));
 
-    NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"RKHuman"];
+    NSFetchRequest *fetchRequest = [NSFetchRequest fetchRequestWithEntityName:@"Human"];
     fetchRequest.predicate = [NSPredicate predicateWithFormat:@"name = %@", @"Test"];
     NSArray *objects = [managedObjectStore.persistentStoreManagedObjectContext executeFetchRequest:fetchRequest error:&error];
     assertThat(objects, hasCountOf(1));
-    RKHuman *fetchedHuman = [objects objectAtIndex:0];
+    RKHuman *fetchedHuman = objects[0];
     assertThatBool([fetchedHuman.objectID isTemporaryID], is(equalToBool(NO)));
 }
 

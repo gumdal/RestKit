@@ -63,6 +63,16 @@
     assertThat(NSStringFromClass(parserClass), is(equalTo(@"RKNSJSONSerialization")));
 }
 
+- (void)testUnregisteringSerialization
+{
+    [RKMIMETypeSerialization registerClass:[RKNSJSONSerialization class] forMIMEType:RKMIMETypeJSON];
+    Class parserClass = [RKMIMETypeSerialization serializationClassForMIMEType:RKMIMETypeJSON];
+    assertThat(NSStringFromClass(parserClass), is(equalTo(@"RKNSJSONSerialization")));
+    [RKMIMETypeSerialization unregisterClass:[RKNSJSONSerialization class]];
+    parserClass = [RKMIMETypeSerialization serializationClassForMIMEType:RKMIMETypeJSON];
+    assertThat(NSStringFromClass(parserClass), is(nilValue()));
+}
+
 - (void)testShouldAutoconfigureBasedOnReflection
 {
     [[RKMIMETypeSerialization sharedSerialization] addRegistrationsForKnownSerializations];
@@ -136,6 +146,59 @@
     NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"application/xml\\+\\w+" options:0 error:nil];
     NSSet *acceptableMIMETypes = [NSSet setWithObjects:@"this/that", @"another/valid", regex, @"woo", nil];
     assertThatBool(RKMIMETypeInSet(@"invalid", acceptableMIMETypes), is(equalToBool(NO)));
+}
+
+- (void)testShouldReturnNilAndSetErrorIfNoParserRegisteredWhenDeserializing
+{
+    NSError *error = nil;
+    id object = [RKMIMETypeSerialization objectFromData:[NSData dataWithBytes:"foobar" length:6]
+                                               MIMEType:@"application/json"
+                                                  error:&error];
+    assertThat(object, is(nilValue()));
+    assertThat(error, isNot(nilValue()));
+    assertThatInteger([error code], is(equalToInt(RKUnsupportedMIMETypeError)));
+    assertThat([error domain], is(equalTo(RKErrorDomain)));
+}
+
+- (void)testDeserializationOfObjectInvokesRegisteredSerializationClass
+{
+    NSArray *parsedData = @[];
+    NSError *error = nil;
+    NSData *data = [@"foobar" dataUsingEncoding:NSUTF8StringEncoding];
+    id mockSerializationClass = [OCMockObject mockForClass:[RKNSJSONSerialization class]];
+    [[[[mockSerializationClass expect] classMethod] andReturn:parsedData] objectFromData:data error:[OCMArg setTo:error]];
+    [RKMIMETypeSerialization registerClass:[RKNSJSONSerialization class] forMIMEType:@"application/bson"];
+    id object = [RKMIMETypeSerialization objectFromData:data MIMEType:@"application/bson" error:&error];
+    expect(object).to.equal(parsedData);
+    expect(error).to.beNil();
+    [mockSerializationClass verify];
+    [mockSerializationClass stopMocking];
+}
+
+- (void)testShouldReturnNilAndSetErrorIfNoParserRegisteredWhenSerializing
+{
+    NSError *error = nil;
+    NSObject *object = [NSObject new];
+    NSData *data = [RKMIMETypeSerialization dataFromObject:object MIMEType:@"application/bson" error:&error];
+    expect(data).to.beNil();
+    expect(error).notTo.beNil();
+    expect([error code]).to.equal(RKUnsupportedMIMETypeError);
+    expect([error domain]).to.equal(RKErrorDomain);
+}
+
+- (void)testSerializationOfObjectInvokesRegisteredSerializationClass
+{
+    NSError *error = nil;
+    NSData *data = [NSData data];
+    NSObject *object = [NSObject new];
+    id mockSerializationClass = [OCMockObject mockForClass:[RKNSJSONSerialization class]];
+    [[[[mockSerializationClass expect] classMethod] andReturn:data] dataFromObject:object error:[OCMArg setTo:error]];
+    [RKMIMETypeSerialization registerClass:[RKNSJSONSerialization class] forMIMEType:@"application/bson"];
+    NSData *serializedData = [RKMIMETypeSerialization dataFromObject:object MIMEType:@"application/bson" error:&error];
+    expect(serializedData).to.equal(data);
+    expect(error).to.beNil();
+    [mockSerializationClass verify];
+    [mockSerializationClass stopMocking];
 }
 
 @end

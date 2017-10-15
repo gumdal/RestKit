@@ -19,6 +19,7 @@
 //
 
 #import "RKTestEnvironment.h"
+#import "RKPathMatcher.h"
 #import "RKPathUtilities.h"
 #import "RKObjectMapperTestModel.h"
 #import "RKURLEncodedSerialization.h"
@@ -33,7 +34,7 @@
 {
     RKObjectMapperTestModel *person = [[RKObjectMapperTestModel alloc] init];
     person.name = @"CuddleGuts";
-    person.age  = [NSNumber numberWithInt:6];
+    person.age  = @6;
     NSString *interpolatedPath = RKPathFromPatternWithObject(@"/people/:name/:age", person);
     assertThat(interpolatedPath, isNot(equalTo(nil)));
     NSString *expectedPath = @"/people/CuddleGuts/6";

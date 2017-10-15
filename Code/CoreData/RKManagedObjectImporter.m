@@ -26,6 +26,7 @@
 #import "RKMapperOperation.h"
 #import "RKManagedObjectMappingOperationDataSource.h"
 #import "RKInMemoryManagedObjectCache.h"
+#import "RKFetchRequestManagedObjectCache.h"
 #import "RKMIMETypeSerialization.h"
 #import "RKPathUtilities.h"
 #import "RKLog.h"
@@ -47,7 +48,7 @@
 
 @implementation RKManagedObjectImporter
 
-- (id)initWithManagedObjectModel:(NSManagedObjectModel *)managedObjectModel storePath:(NSString *)storePath
+- (instancetype)initWithManagedObjectModel:(NSManagedObjectModel *)managedObjectModel storePath:(NSString *)storePath
 {
     NSParameterAssert(managedObjectModel);
     NSParameterAssert(storePath);
@@ -69,9 +70,8 @@
         self.connectionQueue = [NSOperationQueue new];
         [self.connectionQueue setName:@"RKManagedObjectImporter Connection Queue"];
         [self.connectionQueue setSuspended:YES];
-
-        RKManagedObjectMappingOperationDataSource *mappingOperationDataSource = [self createMappingOperationDataSource];
-        self.mappingOperationDataSource = mappingOperationDataSource;
+        
+        self.managedObjectCache = [[RKInMemoryManagedObjectCache alloc] initWithManagedObjectContext:managedObjectContext];
 
         self.hasPerformedResetIfNecessary = NO;
         self.resetsStoreBeforeImporting = YES;
@@ -80,7 +80,7 @@
     return self;
 }
 
-- (id)initWithPersistentStore:(NSPersistentStore *)persistentStore
+- (instancetype)initWithPersistentStore:(NSPersistentStore *)persistentStore
 {
     NSParameterAssert(persistentStore);
 
@@ -100,8 +100,7 @@
         [self.connectionQueue setName:@"RKManagedObjectImporter Connection Queue"];
         [self.connectionQueue setSuspended:YES];
 
-        RKManagedObjectMappingOperationDataSource *mappingOperationDataSource = [self createMappingOperationDataSource];
-        self.mappingOperationDataSource = mappingOperationDataSource;
+        self.managedObjectCache = [[RKInMemoryManagedObjectCache alloc] initWithManagedObjectContext:managedObjectContext];
 
         self.hasPerformedResetIfNecessary = NO;
         self.resetsStoreBeforeImporting = NO;
@@ -110,7 +109,7 @@
     return self;
 }
 
-- (id)init
+- (instancetype)init
 {
     @throw [NSException exceptionWithName:NSInternalInconsistencyException
                                    reason:[NSString stringWithFormat:@"%@ Failed to call designated initializer. Invoke initWithManagedObjectModel:storePath: instead.",
@@ -148,17 +147,13 @@
     return managedObjectContext;
 }
 
-- (RKManagedObjectMappingOperationDataSource *)createMappingOperationDataSource
+- (void)setManagedObjectCache:(id<RKManagedObjectCaching>)managedObjectCache
 {
     NSAssert(self.connectionQueue, @"Connection Queue cannot be nil");
-    RKInMemoryManagedObjectCache *managedObjectCache = [[RKInMemoryManagedObjectCache alloc] initWithManagedObjectContext:self.managedObjectContext];
-    RKManagedObjectMappingOperationDataSource *mappingOperationDataSource = [[RKManagedObjectMappingOperationDataSource alloc] initWithManagedObjectContext:self.managedObjectContext
-                                                                                                                                                      cache:managedObjectCache];
-    mappingOperationDataSource.operationQueue = self.connectionQueue;
-
-    return mappingOperationDataSource;
+    self.mappingOperationDataSource = [[RKManagedObjectMappingOperationDataSource alloc] initWithManagedObjectContext:self.managedObjectContext
+                                                                                                                cache:managedObjectCache];
+    self.mappingOperationDataSource.operationQueue = self.connectionQueue;
 }
-
 
 - (void)resetPersistentStoreIfNecessary
 {
@@ -213,7 +208,7 @@
     }
 
     NSDictionary *mappingDictionary = @{ (keyPath ?: [NSNull null]) : mapping };
-    RKMapperOperation *mapper = [[RKMapperOperation alloc] initWithObject:parsedData mappingsDictionary:mappingDictionary];
+    RKMapperOperation *mapper = [[RKMapperOperation alloc] initWithRepresentation:parsedData mappingsDictionary:mappingDictionary];
     mapper.mappingOperationDataSource = self.mappingOperationDataSource;
     __block RKMappingResult *mappingResult;
     [self.managedObjectContext performBlockAndWait:^{
@@ -244,7 +239,7 @@
 
     NSUInteger aggregateObjectCount = 0;
     for (NSString *entry in entries) {
-        NSUInteger objectCount = [self importObjectsFromFileAtPath:path withMapping:mapping keyPath:keyPath error:&localError];
+        NSUInteger objectCount = [self importObjectsFromFileAtPath:[path stringByAppendingPathComponent:entry] withMapping:mapping keyPath:keyPath error:&localError];
         if (objectCount == NSNotFound) {
             if (error) *error = localError;
             return NSNotFound;
@@ -273,6 +268,8 @@
 - (BOOL)finishImporting:(NSError **)error
 {
     // Perform our connection operations in a batch, before we save the MOC
+    RKLogInfo(@"Starting %lu connection operations...", (unsigned long) self.connectionQueue.operationCount);
+    [self.connectionQueue setMaxConcurrentOperationCount:50];
     [self.connectionQueue setSuspended:NO];
     [self.connectionQueue waitUntilAllOperationsAreFinished];
 

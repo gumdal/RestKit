@@ -20,7 +20,6 @@
 
 #import <objc/runtime.h>
 #import "NSManagedObjectContext+RKAdditions.h"
-#import "NSEntityDescription+RKAdditions.h"
 #import "RKLog.h"
 
 @implementation NSManagedObjectContext (RKAdditions)
@@ -37,49 +36,34 @@
     return [self countForFetchRequest:fetchRequest error:error];
 }
 
-- (id)fetchObjectForEntity:(NSEntityDescription *)entity withValueForPrimaryKeyAttribute:(id)primaryKeyValue
-{
-    NSPredicate *predicate = [entity predicateForPrimaryKeyAttributeWithValue:primaryKeyValue];
-    if (! predicate) {
-        RKLogWarning(@"Attempt to fetchObjectForEntity for entity with nil primaryKeyAttribute. Set the primaryKeyAttributeName and try again! %@", self);
-        return nil;
-    }
-
-    NSFetchRequest *fetchRequest = [NSFetchRequest new];
-    fetchRequest.entity = entity;
-    fetchRequest.predicate = predicate;
-    fetchRequest.fetchLimit = 1;
-    __block NSError *error;
-    __block NSArray *objects;
-    [self performBlockAndWait:^{
-        objects = [self executeFetchRequest:fetchRequest error:&error];
-    }];
-    if (! objects) {
-        RKLogCoreDataError(error);
-        return nil;
-    }
-
-    if ([objects count] == 1) {
-        return [objects objectAtIndex:0];
-    }
-
-    return nil;
-}
-
-- (id)fetchObjectForEntityForName:(NSString *)entityName withValueForPrimaryKeyAttribute:(id)primaryKeyValue
-{
-    NSEntityDescription *entity = [NSEntityDescription entityForName:entityName inManagedObjectContext:self];
-    return [self fetchObjectForEntity:entity withValueForPrimaryKeyAttribute:primaryKeyValue];
-}
-
 - (BOOL)saveToPersistentStore:(NSError **)error
 {
     __block NSError *localError = nil;
     NSManagedObjectContext *contextToSave = self;
     while (contextToSave) {
         __block BOOL success;
+     
+        /**
+         To work around issues in ios 5 first obtain permanent object ids for any inserted objects.  If we don't do this then its easy to get an `NSObjectInaccessibleException`.  This happens when:
+
+         1. Create new object on main context and save it.
+         2. At this point you may or may not call obtainPermanentIDsForObjects for the object, it doesn't matter
+         3. Update the object in a private child context.
+         4. Save the child context to the parent context (the main one) which will work,
+         5. Save the main context - a NSObjectInaccessibleException will occur and Core Data will either crash your app or lock it up (a semaphore is not correctly released on the first error so the next fetch request will block forever.
+         */
+        __block BOOL obtained;
+        [contextToSave performBlockAndWait:^{
+            obtained = [contextToSave obtainPermanentIDsForObjects:[[contextToSave insertedObjects] allObjects] error:&localError];
+        }];
+        if (!obtained) {
+            if (error) *error = localError;
+            return NO;
+        }
+
         [contextToSave performBlockAndWait:^{
             success = [contextToSave save:&localError];
+            if (! success && localError == nil) RKLogWarning(@"Saving of managed object context failed, but a `nil` value for the `error` argument was returned. This typically indicates an invalid implementation of a key-value validation method exists within your model. This violation of the API contract may result in the save operation being mis-interpretted by callers that rely on the availability of the error.");
         }];
 
         if (! success) {

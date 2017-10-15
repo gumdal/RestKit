@@ -7,31 +7,24 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreLocation/CoreLocation.h>
 #import "RKTestAddress.h"
+#import "RKHuman.h"
 
-@interface RKTestUser : NSObject {
-    NSNumber *_userID;
-    NSString *_name;
-    NSDate *_birthDate;
-    NSArray *_favoriteColors;
-    NSDictionary *_addressDictionary;
-    NSURL *_website;
-    NSNumber *_isDeveloper;
-    NSNumber *_luckyNumber;
-    NSDecimalNumber *_weight;
-    NSArray *_interests;
-    NSString *_country;
+@interface RKTestCoordinate : NSObject
+@property (nonatomic, assign) double latitude;
+@property (nonatomic, assign) double longitude;
+@end
 
-    // Relationships
-    RKTestAddress *_address;
-    NSArray *_friends;
-}
+@interface RKTestUser : NSObject
 
 @property (nonatomic, strong) NSNumber *userID;
 @property (nonatomic, strong) NSString *name;
+@property (nonatomic, strong) NSString *emailAddress;
 @property (nonatomic, strong) NSDate *birthDate;
 @property (nonatomic, strong) NSDate *favoriteDate;
 @property (nonatomic, strong) NSArray *favoriteColors;
+@property (nonatomic, strong) NSMutableArray *mutableFavoriteColors;
 @property (nonatomic, strong) NSDictionary *addressDictionary;
 @property (nonatomic, strong) NSURL *website;
 @property (nonatomic, strong) NSNumber *isDeveloper;
@@ -42,7 +35,15 @@
 @property (nonatomic, strong) RKTestAddress *address;
 @property (nonatomic, strong) NSArray *friends;
 @property (nonatomic, strong) NSSet *friendsSet;
+@property (nonatomic, strong) RKHuman *bestFriend;
 @property (nonatomic, strong) NSOrderedSet *friendsOrderedSet;
+@property (nonatomic, strong) NSData *data;
+@property (nonatomic, strong) RKTestCoordinate *coordinate;
+@property (nonatomic, copy) CLLocation *location;
+@property (nonatomic, assign) NSInteger age;
+@property (nonatomic, strong) NSDate *createdAt;
+@property (nonatomic, assign) NSInteger position;
+@property (nonatomic, strong) RKTestUser *friend;
 
 + (RKTestUser *)user;
 

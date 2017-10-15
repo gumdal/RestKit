@@ -21,15 +21,18 @@
 #import "RKRelationshipMapping.h"
 #import "RKMapping.h"
 
+@interface RKPropertyMapping ()
+@property (nonatomic, copy, readwrite) NSString *sourceKeyPath;
+@property (nonatomic, copy, readwrite) NSString *destinationKeyPath;
+@end
+
 @interface RKRelationshipMapping ()
-@property (nonatomic, strong, readwrite) NSString *sourceKeyPath;
-@property (nonatomic, strong, readwrite) NSString *destinationKeyPath;
 @property (nonatomic, strong, readwrite) RKMapping *mapping;
 @end
 
 @implementation RKRelationshipMapping
 
-+ (RKRelationshipMapping *)relationshipMappingFromKeyPath:(NSString *)sourceKeyPath toKeyPath:(NSString *)destinationKeyPath withMapping:(RKMapping *)mapping
++ (instancetype)relationshipMappingFromKeyPath:(NSString *)sourceKeyPath toKeyPath:(NSString *)destinationKeyPath withMapping:(RKMapping *)mapping
 {
     RKRelationshipMapping *relationshipMapping = [self new];
     relationshipMapping.sourceKeyPath = sourceKeyPath;
@@ -38,10 +41,20 @@
     return relationshipMapping;
 }
 
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.assignmentPolicy = RKSetAssignmentPolicy;
+    }
+    return self;
+}
+
 - (id)copyWithZone:(NSZone *)zone
 {
     RKRelationshipMapping *copy = [super copyWithZone:zone];
     copy.mapping = self.mapping;
+    copy.assignmentPolicy = self.assignmentPolicy;
     return copy;
 }
 

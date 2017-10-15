@@ -20,9 +20,6 @@
 
 #import "RKRoute.h"
 
-// Wildcard matches on objects
-extern RKRequestMethod const RKRequestMethodAny;
-
 /**
  The `RKRouteSet` class provides for the storage and retrieval of `RKRoute` objects. Route objects are added and removed the route set to manipulate the routing table of the application.
 
@@ -41,6 +38,13 @@ extern RKRequestMethod const RKRequestMethodAny;
  @raises NSInvalidArgumentException Raised if the route already exists in the receiver or overlaps an existing name.
  */
 - (void)addRoute:(RKRoute *)route;
+
+/**
+ Adds all routes from the given array to the receiver. All objects within the given array must be an instance of `RKRoute` or else an `NSInvalidArgumentException` will be raised.
+ 
+ @param routes An array of `RKRoute` objects to be added to the receiver.
+ */
+- (void)addRoutes:(NSArray *)routes;
 
 /**
  Removes a route from the receiver.
@@ -67,28 +71,28 @@ extern RKRequestMethod const RKRequestMethodAny;
 
  @return An array containing all the routes in the receiver.
  */
-- (NSArray *)allRoutes;
+@property (nonatomic, readonly, copy) NSArray *allRoutes;
 
 /**
  Returns all named routes from the receiver in an array.
 
  @return An array containing all the named routes in the receiver.
  */
-- (NSArray *)namedRoutes;
+@property (nonatomic, readonly, copy) NSArray *namedRoutes;
 
 /**
  Returns all class routes from the receiver in an array.
 
  @return An array containing all the class routes in the receiver.
  */
-- (NSArray *)classRoutes;
+@property (nonatomic, readonly, copy) NSArray *classRoutes;
 
 /**
  Returns all relationship routes from the receiver in an array.
 
  @return An array containing all the relationship routes in the receiver.
  */
-- (NSArray *)relationshipRoutes;
+@property (nonatomic, readonly, copy) NSArray *relationshipRoutes;
 
 /**
  Retrieves a route with the given name.

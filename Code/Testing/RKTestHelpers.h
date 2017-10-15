@@ -21,6 +21,10 @@
 #import <Foundation/Foundation.h>
 #import "RKHTTPUtilities.h"
 
+#if __has_include("CoreData.h")
+#define RKCoreDataIncluded
+#endif
+
 @class RKRoute, RKObjectManager;
 
 /**
@@ -69,9 +73,11 @@
  */
 + (RKRoute *)stubRouteForRelationship:(NSString *)relationshipName
                               ofClass:(Class)objectClass
+                               method:(RKRequestMethod)method
                           pathPattern:(NSString *)pathPattern
                       onObjectManager:(RKObjectManager *)nilOrObjectManager;
 
+#ifdef RKCoreDataIncluded
 /**
  Finds all registered fetch request blocks matching the given path pattern and adds a new fetch request block that returns the same value as the origin block that matches the given relative string portion of a URL object.
  
@@ -82,6 +88,7 @@
 + (void)copyFetchRequestBlocksMatchingPathPattern:(NSString *)pathPattern
                    toBlocksMatchingRelativeString:(NSString *)relativeString
                       onObjectManager:(RKObjectManager *)nilOrObjectManager;
+#endif
 
 ///-----------------------------
 /// @name Working with the Cache

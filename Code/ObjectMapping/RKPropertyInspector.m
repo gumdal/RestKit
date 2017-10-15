@@ -18,13 +18,48 @@
 //  limitations under the License.
 //
 
-#import <objc/message.h>
+#import <objc/runtime.h>
 #import "RKPropertyInspector.h"
 #import "RKLog.h"
+#import "RKObjectUtilities.h"
 
 // Set Logging Component
 #undef RKLogComponent
 #define RKLogComponent RKlcl_cRestKitObjectMapping
+
+NSString * const RKPropertyInspectionNameKey = @"name";
+NSString * const RKPropertyInspectionKeyValueCodingClassKey = @"keyValueCodingClass";
+NSString * const RKPropertyInspectionIsPrimitiveKey = @"isPrimitive";
+
+
+@implementation RKPropertyInspectorPropertyInfo
+
++ (instancetype)propertyInfoWithName:(NSString *)name keyValueClass:(Class)kvClass isPrimitive:(BOOL)isPrimitive
+{
+    return [[self alloc] initWithName:name keyValueClass:kvClass isPrimitive:isPrimitive];
+}
+
+- (instancetype)initWithName:(NSString *)name keyValueClass:(Class)kvClass isPrimitive:(BOOL)isPrimitive
+{
+    if (self = [super init]) {
+        _name = [name copy];
+        _keyValueCodingClass = kvClass;
+        _isPrimitive = isPrimitive;
+    }
+    return self;
+}
+
+@end
+
+
+@interface RKPropertyInspector ()
+#if OS_OBJECT_USE_OBJC
+@property (nonatomic, strong) dispatch_queue_t queue;
+#else
+@property (nonatomic, assign) dispatch_queue_t queue;
+#endif
+@property (nonatomic, strong) NSMutableDictionary *inspectionCache;
+@end
 
 @implementation RKPropertyInspector
 
@@ -39,80 +74,134 @@
     return sharedInspector;
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
-        _propertyNamesToTypesCache = [[NSCache alloc] init];
+        // NOTE: We use an `NSMutableDictionary` because it is *much* faster than `NSCache` on lookup
+        self.inspectionCache = [NSMutableDictionary dictionary];
+        self.queue = dispatch_queue_create("org.restkit.core-data.property-inspection-queue", DISPATCH_QUEUE_CONCURRENT);
     }
 
     return self;
 }
 
-
-+ (NSString *)propertyTypeFromAttributeString:(NSString *)attributeString
+- (void)dealloc
 {
-    NSString *type = [NSString string];
-    NSScanner *typeScanner = [NSScanner scannerWithString:attributeString];
-    [typeScanner scanUpToCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@"@"] intoString:NULL];
-
-    // we are not dealing with an object
-    if ([typeScanner isAtEnd]) {
-        return @"NULL";
-    }
-    [typeScanner scanCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@"\"@"] intoString:NULL];
-    // this gets the actual object type
-    [typeScanner scanUpToCharactersFromSet:[NSCharacterSet characterSetWithCharactersInString:@"\""] intoString:&type];
-    return type;
+#if !OS_OBJECT_USE_OBJC
+    if (_queue) dispatch_release(_queue);
+#endif
+    _queue = NULL;
 }
 
-- (NSDictionary *)propertyNamesAndTypesForClass:(Class)theClass
+- (NSDictionary *)propertyInspectionForClass:(Class)objectClass
 {
-    NSMutableDictionary *propertyNames = [_propertyNamesToTypesCache objectForKey:theClass];
-    if (propertyNames) {
-        return propertyNames;
-    }
-    propertyNames = [NSMutableDictionary dictionary];
+    __block NSMutableDictionary *inspection;
+    dispatch_sync(self.queue, ^{
+        inspection = (self.inspectionCache)[objectClass];
+    });
+    if (inspection) return inspection;
+    
+    inspection = [NSMutableDictionary dictionary];
 
     //include superclass properties
-    Class currentClass = theClass;
+    Class currentClass = objectClass;
     while (currentClass != nil) {
         // Get the raw list of properties
-        unsigned int outCount;
+        unsigned int outCount = 0;
         objc_property_t *propList = class_copyPropertyList(currentClass, &outCount);
 
         // Collect the property names
-        int i;
-        NSString *propName;
-        for (i = 0; i < outCount; i++) {
-            // property_getAttributes() returns everything we need to implement this...
-            // See: http://developer.apple.com/mac/library/DOCUMENTATION/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtPropertyIntrospection.html#//apple_ref/doc/uid/TP40008048-CH101-SW5
+        for (typeof(outCount) i = 0; i < outCount; i++) {
             objc_property_t *prop = propList + i;
-            NSString *attributeString = [NSString stringWithCString:property_getAttributes(*prop) encoding:NSUTF8StringEncoding];
-            propName = [NSString stringWithCString:property_getName(*prop) encoding:NSUTF8StringEncoding];
+            const char *propName = property_getName(*prop);
 
-            if (![propName isEqualToString:@"_mapkit_hasPanoramaID"]) {
-                const char *className = [[RKPropertyInspector propertyTypeFromAttributeString:attributeString] cStringUsingEncoding:NSUTF8StringEncoding];
-                Class aClass = objc_getClass(className);
-                if (aClass) {
-                    [propertyNames setObject:aClass forKey:propName];
+            if (strcmp(propName, "_mapkit_hasPanoramaID") != 0) {
+                const char *attr = property_getAttributes(*prop);
+                if (attr) {
+                    Class aClass = RKKeyValueCodingClassFromPropertyAttributes(attr);
+                    if (aClass) {
+                        NSString *propNameString = [[NSString alloc] initWithCString:propName encoding:NSUTF8StringEncoding];
+                        if (propNameString) {
+                            BOOL isPrimitive = NO;
+                            if (attr) {
+                                const char *typeIdentifierLoc = strchr(attr, 'T');
+                                if (typeIdentifierLoc) {
+                                    isPrimitive = (typeIdentifierLoc[1] != '@');
+                                }
+                            }
+                            
+                            RKPropertyInspectorPropertyInfo *info;
+                            info = [RKPropertyInspectorPropertyInfo propertyInfoWithName:propNameString
+                                                                           keyValueClass:aClass
+                                                                             isPrimitive:isPrimitive];
+                            inspection[propNameString] = info;
+                        }
+                    }
                 }
             }
         }
 
         free(propList);
-        currentClass = [currentClass superclass];
+        Class superclass = [currentClass superclass];
+        Class nsManagedObject = NSClassFromString(@"NSManagedObject");
+        currentClass = (superclass == [NSObject class] || (nsManagedObject && superclass == nsManagedObject)) ? nil : superclass;
     }
 
-    [_propertyNamesToTypesCache setObject:propertyNames forKey:theClass];
-    RKLogDebug(@"Cached property names and types for Class '%@': %@", NSStringFromClass(theClass), propertyNames);
-    return propertyNames;
+    /* dispatch_barrier_async is dangerous if we are called from +initialize */
+    dispatch_barrier_sync(self.queue, ^{
+        (self.inspectionCache)[(id<NSCopying>)objectClass] = inspection;
+        RKLogDebug(@"Cached property inspection for Class '%@': %@", NSStringFromClass(objectClass), inspection);
+    });
+    return inspection;
 }
 
-- (Class)typeForProperty:(NSString *)propertyName ofClass:(Class)objectClass
+- (Class)classForPropertyNamed:(NSString *)propertyName ofClass:(Class)objectClass isPrimitive:(BOOL *)isPrimitive
 {
-    NSDictionary *dictionary = [self propertyNamesAndTypesForClass:objectClass];
-    return [dictionary objectForKey:propertyName];
+    NSDictionary *classInspection = [self propertyInspectionForClass:objectClass];
+    RKPropertyInspectorPropertyInfo *propertyInspection = classInspection[propertyName];
+    if (isPrimitive) *isPrimitive = propertyInspection.isPrimitive;
+    return propertyInspection.keyValueCodingClass;
 }
 
 @end
+
+
+@interface NSObject (RKPropertyInspection)
+- (Class)rk_classForPropertyAtKeyPath:(NSString *)keyPath isPrimitive:(BOOL *)isPrimitive;
+@end
+
+@implementation NSObject (RKPropertyInspection)
+
+- (Class)rk_classForPropertyAtKeyPath:(NSString *)keyPath isPrimitive:(BOOL *)isPrimitive
+{
+    NSRange dotRange = [keyPath rangeOfString:@"." options:NSLiteralSearch];
+    RKPropertyInspector *inspector = [RKPropertyInspector sharedInspector];
+    Class propertyClass = [self class];
+    
+    if (dotRange.length == 0) {
+        return [inspector classForPropertyNamed:keyPath ofClass:propertyClass isPrimitive:isPrimitive];
+    }
+
+    NSArray *components = [keyPath componentsSeparatedByString:@"."];
+    for (NSString *property in components) {
+        propertyClass = [inspector classForPropertyNamed:property ofClass:propertyClass isPrimitive:isPrimitive];
+        if (! propertyClass) break;
+    }
+    
+    return propertyClass;
+}
+
+@end
+
+Class RKPropertyInspectorGetClassForPropertyAtKeyPathOfObject(NSString *keyPath, id object)
+{
+    return [object rk_classForPropertyAtKeyPath:keyPath isPrimitive:nil];
+}
+
+BOOL RKPropertyInspectorIsPropertyAtKeyPathOfObjectPrimitive(NSString *keyPath, id object)
+{
+    BOOL isPrimitive = NO;
+    [object rk_classForPropertyAtKeyPath:keyPath isPrimitive:&isPrimitive];
+    return isPrimitive;
+}

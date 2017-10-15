@@ -9,10 +9,12 @@
 #import <RestKit/RestKit.h>
 #import "RKTwitterAppDelegate.h"
 #import "RKTwitterViewController.h"
-#import "RKTStatus.h"
+#import "RKTweet.h"
 #import "RKTUser.h"
 
 @implementation RKTwitterAppDelegate
+
+@synthesize window;
 
 #pragma mark -
 #pragma mark Application lifecycle
@@ -23,17 +25,20 @@
     RKLogConfigureByName("RestKit/ObjectMapping", RKLogLevelTrace);
 
     //let AFNetworking manage the activity indicator
-    [AFNetworkActivityIndicatorManager sharedManager].enabled = YES;
+    [AFRKNetworkActivityIndicatorManager sharedManager].enabled = YES;
   
     // Initialize HTTPClient
-    NSURL *baseURL = [NSURL URLWithString:@"http://twitter.com"];
-    AFHTTPClient* client = [[AFHTTPClient alloc] initWithBaseURL:baseURL];
+    NSURL *baseURL = [NSURL URLWithString:@"https://twitter.com"];
+    AFRKHTTPClient* client = [[AFRKHTTPClient alloc] initWithBaseURL:baseURL];
+    
+    // HACK: Set User-Agent to Mac OS X so that Twitter will let us access the Timeline
+    [client setDefaultHeader:@"User-Agent" value:[NSString stringWithFormat:@"%@/%@ (Mac OS X %@)", [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString *)kCFBundleExecutableKey] ?: [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString *)kCFBundleIdentifierKey], [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"] ?: [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString *)kCFBundleVersionKey], [[NSProcessInfo processInfo] operatingSystemVersionString]]];
+    
     //we want to work with JSON-Data
     [client setDefaultHeader:@"Accept" value:RKMIMETypeJSON];
   
     // Initialize RestKit
     RKObjectManager *objectManager = [[RKObjectManager alloc] initWithHTTPClient:client];
-
   
     // Setup our object mappings
     RKObjectMapping *userMapping = [RKObjectMapping mappingForClass:[RKTUser class]];
@@ -43,7 +48,7 @@
      @"name" : @"name"
      }];
 
-    RKObjectMapping *statusMapping = [RKObjectMapping mappingForClass:[RKTStatus class]];
+    RKObjectMapping *statusMapping = [RKObjectMapping mappingForClass:[RKTweet class]];
     [statusMapping addAttributeMappingsFromDictionary:@{
      @"id" : @"statusID",
      @"created_at" : @"createdAt",
@@ -59,29 +64,27 @@
 
     // Update date format so that we can parse Twitter dates properly
     // Wed Sep 29 15:31:08 +0000 2010
-    [RKObjectMapping addDefaultDateFormatterForString:@"E MMM d HH:mm:ss Z y" inTimeZone:nil];
+    NSDateFormatter *dateFormatter = [NSDateFormatter new];
+    dateFormatter.dateFormat = @"E MMM d HH:mm:ss Z y";
+    dateFormatter.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+    [[RKValueTransformer defaultValueTransformer] insertValueTransformer:dateFormatter atIndex:0];
 
     // Register our mappings with the provider using a response descriptor
     RKResponseDescriptor *responseDescriptor = [RKResponseDescriptor responseDescriptorWithMapping:statusMapping
-                                                                                     pathPattern:@"/status/user_timeline/:username"
-                                                                                         keyPath:nil
-                                                                                     statusCodes:[NSIndexSet indexSetWithIndex:200]];
+                                                                                            method:RKRequestMethodGET
+                                                                                       pathPattern:@"/status/user_timeline/:username"
+                                                                                           keyPath:nil
+                                                                                       statusCodes:[NSIndexSet indexSetWithIndex:200]];
     [objectManager addResponseDescriptor:responseDescriptor];
 
     // Create Window and View Controllers
-    RKTwitterViewController *viewController = [[[RKTwitterViewController alloc] initWithNibName:nil bundle:nil] autorelease];
+    RKTwitterViewController *viewController = [[RKTwitterViewController alloc] initWithNibName:nil bundle:nil];
     UINavigationController *controller = [[UINavigationController alloc] initWithRootViewController:viewController];
-    UIWindow *window = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, 320, 480)];
-    [window addSubview:controller.view];
-    [window makeKeyAndVisible];
+    self.window = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, 320, 480)];
+    self.window.rootViewController = controller;
+    [self.window makeKeyAndVisible];
 
     return YES;
 }
-
-- (void)dealloc
-{
-    [super dealloc];
-}
-
 
 @end

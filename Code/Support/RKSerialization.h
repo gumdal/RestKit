@@ -18,6 +18,8 @@
 //  limitations under the License.
 //
 
+#import <Foundation/Foundation.h>
+
 /**
  The `RKSerialization` protocol declares two methods that a class must implement so that it can provide support for serializing objects to and deserializing objects from UTF-8 encoded data representations of a serialization format such as JSON or XML. Serialization implementations typically handle data in a given MIME Type (i.e. `application/json`) and may be registered with the `RKMIMETypeSerialization` class.
  
@@ -46,7 +48,6 @@
  Serializes and returns a UTF-8 encoded data representation of the given Foundation object in the format supported by the receiver (i.e. JSON, XML, etc).
  
  @param object The object to be serialized.
- @param A pointer to an `NSError` object.
  @param error A pointer to an NSError object.
  @return A data representation of the given object in UTF-8 encoding, or nil if an error occurred.
  */

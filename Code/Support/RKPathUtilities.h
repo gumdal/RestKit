@@ -8,6 +8,10 @@
 
 #import <Foundation/Foundation.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  Returns the path to the Application Data directory for the executing application. On iOS, this is a sandboxed path specific for the executing application. On OS X, this is an application specific path under `NSApplicationSupportDirectory` (i.e. ~/Application Support).
 
@@ -32,21 +36,6 @@ NSString *RKCachesDirectory(void);
 BOOL RKEnsureDirectoryExistsAtPath(NSString *path, NSError **error);
 
 /**
- Convenience method for generating a path against the properties of an object. Takes an `NSString` with property names prefixed with a colon and interpolates the values of the properties specified and returns the generated path.
- 
- For example, given an `article` object with an `articleID` property whose value is `@12345`, `RKPathFromPatternWithObject(@"articles/:articleID", article)` would return `@"articles/12345"`.
- 
- This functionality is the basis for path generation in the `RKRouter` class.
- 
- @param pathPattern An `SOCPattern` string containing zero or more colon-prefixed property names.
- @param object The object to interpolate the properties against
- @return A new `NSString` object with the values of the given object interpolated for the colon-prefixed properties name in the given pattern string.
- @see `RKPathMatcher`
- @see `SOCPattern`
- */
-NSString *RKPathFromPatternWithObject(NSString *pathPattern, id object);
-
-/**
  Returns a MIME Type for a given path by using the Core Services framework.
  
  For example, given a string with the path `@"/Users/blake/Documents/monkey.json"` `@"application/json"` would be returned as the MIME Type.
@@ -55,3 +44,19 @@ NSString *RKPathFromPatternWithObject(NSString *pathPattern, id object);
  @return The expected MIME Type of the resource identified by the path or nil if unknown.
  */
 NSString *RKMIMETypeFromPathExtension(NSString *path);
+
+/**
+ Excludes the item at a given path from backup via iTunes and/or iCloud using the approaches detailed in "Apple Technical Q&A QA1719".
+ 
+ Excluding a path from backup can be necessary in order to conform to the iCloud Data Storage Guidelines. Please refer to the following links for more details:
+ 
+ 1. [iCloud Data Storage Guidelines](https://developer.apple.com/icloud/documentation/data-storage/)
+ 1. [Technical Q&A QA1719](http://developer.apple.com/library/ios/#qa/qa1719/_index.html)
+ 
+ @param path The path to the item that is to be excluded from backup.
+ */
+void RKSetExcludeFromBackupAttributeForItemAtPath(NSString *path);
+
+#ifdef __cplusplus
+}
+#endif

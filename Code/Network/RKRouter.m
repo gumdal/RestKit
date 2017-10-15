@@ -25,13 +25,12 @@
 #import <objc/runtime.h>
 
 @interface RKRouter ()
-@property (nonatomic, strong, readwrite) NSURL *baseURL;
 @property (nonatomic, strong, readwrite) RKRouteSet *routeSet;
 @end
 
 @implementation RKRouter
 
-- (id)initWithBaseURL:(NSURL *)baseURL
+- (instancetype)initWithBaseURL:(NSURL *)baseURL
 {
     self = [super init];
     if (self) {
@@ -43,7 +42,7 @@
     return self;
 }
 
-- (id)init
+- (instancetype)init
 {
     @throw [NSException exceptionWithName:NSInternalInconsistencyException
                                    reason:[NSString stringWithFormat:@"%@ Failed to call designated initializer. Invoke initWithBaseURL: instead.", NSStringFromClass([self class])]
@@ -80,7 +79,7 @@
 {
     if (! object) return route.pathPattern;
     RKPathMatcher *pathMatcher = [RKPathMatcher pathMatcherWithPattern:route.pathPattern];
-    return [pathMatcher pathFromObject:object addingEscapes:route.shouldEscapePath];
+    return [pathMatcher pathFromObject:object addingEscapes:route.shouldEscapePath interpolatedParameters:nil];
 }
 
 @end

@@ -18,6 +18,11 @@
 //  limitations under the License.
 //
 
+#import <Foundation/Foundation.h>
+#if __has_include("CoreData.h")
+#import <CoreData/CoreData.h>
+#endif
+
 /**
  RestKit Logging is based on the LibComponentLogging framework
 
@@ -25,6 +30,30 @@
  @see lcl_config_logger_RK.h
  */
 #import "lcl_RK.h"
+
+/**
+ * Protocol which classes can implement to determine how RestKit log messages actually get handled.
+ * There is a single "current" logging class installed, which all log messages will flow
+ * through.
+ */
+@protocol RKLogging
+
++ (void)logWithComponent:(_RKlcl_component_t)component
+                   level:(_RKlcl_level_t)level
+                    path:(const char *)file
+                    line:(uint32_t)line
+                function:(const char *)function
+                  format:(NSString *)format, ... NS_FORMAT_FUNCTION(6, 7);
+
+@end
+
+/**
+ * Functions to get and set the current RKLogging class.
+ */
+Class <RKLogging> RKGetLoggingClass(void);
+void RKSetLoggingClass(Class <RKLogging> loggingClass);
+
+
 
 /**
  RKLogComponent defines the active component within any given portion of RestKit
@@ -106,7 +135,6 @@ RKlcl_log(RKLogComponent, RKlcl_vTrace, @"" __VA_ARGS__)
     RKLogConfigureByName("RestKit/ObjectMapping", RKLogLevelCritical);
  */
 #define RKLogConfigureByName(name, level)                                               \
-RKLogInitialize();                                                                      \
 RKlcl_configure_by_name(name, level);
 
 /**
@@ -115,7 +143,6 @@ RKlcl_configure_by_name(name, level);
  their apps.
  */
 #define RKLogSetAppLoggingLevel(level)                                                  \
-RKLogInitialize();                                                                      \
 RKlcl_configure_by_name("App", level);
 
 /**
@@ -179,18 +206,13 @@ RKlcl_configure_by_name("App", level);
 #endif
 
 /**
- Initialize the logging environment
- */
-void RKLogInitialize(void);
-
-/**
  Configure RestKit logging from environment variables.
  (Use Option + Command + R to set Environment Variables prior to run.)
 
  For example to configure the equivalent of setting the following in code:
  RKLogConfigureByName("RestKit/Network", RKLogLevelTrace);
 
- Define an environment variable named RKLogLevel.RestKit.Network and set its value to "Trace"
+ Define an environment variable named 'RKLogLevel.RestKit.Network' and set its value to "Trace"
 
  See lcl_config_components_RK.h for configurable RestKit logging components.
 
@@ -211,6 +233,7 @@ void RKLogConfigureFromEnvironment(void);
  */
 void RKLogValidationError(NSError *error);
 
+#if __has_include("CoreData.h")
 /**
  Logs extensive information an NSError generated as the result of a
  failed Core Data interaction, such as the execution of a fetch request
@@ -221,6 +244,7 @@ void RKLogValidationError(NSError *error);
  at invocation time.
  */
 void RKLogCoreDataError(NSError *error);
+#endif
 
 /**
  Logs the value of an NSUInteger as a binary string. Useful when

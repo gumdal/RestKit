@@ -1,11 +1,10 @@
-source "http://rubygems.org"
+source "https://rubygems.org"
 
-gem "rake", "~> 0.9.0"
-gem "bundler", "~> 1.2.0"
-gem "sinatra", :git => "git://github.com/sinatra/sinatra.git"
-gem "thin", "~> 1.5.0"
-gem 'xcoder', :git => "git://github.com/rayh/xcoder.git"
-gem 'restkit', :git => 'git://github.com/RestKit/RestKit-Gem.git'
-gem 'debugger', '1.2.0'
-gem 'faker', '1.1.2'
-gem 'cocoapods', '0.15.1'
+gem 'bundler'
+gem 'rakeup', '~> 1.2.0'
+gem 'sinatra', '~> 1.4.8'
+gem 'sinatra-contrib', '~> 1.4.7'
+gem 'thin', '~> 1.7.1'
+gem 'cocoapods', '1.2.1'
+gem 'xctasks', '~> 0.6.0'
+gem 'xcpretty', '~> 0.2.8'

@@ -21,9 +21,20 @@
 #import "RKDotNetDateFormatter.h"
 #import "RKLog.h"
 
-static BOOL RKDotNetDateFormatterIsValidRange(NSRange rangeOfMatch);
-static NSTimeInterval RKDotNetDateFormatterSecondsFromMilliseconds(NSTimeInterval millisecs);
-static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterval seconds);
+static BOOL RKDotNetDateFormatterIsValidRange(NSRange rangeOfMatch)
+{
+    return (!NSEqualRanges(rangeOfMatch, NSMakeRange(NSNotFound, 0)));
+}
+
+static NSTimeInterval RKDotNetDateFormatterSecondsFromMilliseconds(NSTimeInterval millisecs)
+{
+    return millisecs / 1000.f;
+}
+
+static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterval seconds)
+{
+    return seconds *1000.f;
+}
 
 @interface RKDotNetDateFormatter ()
 @property (nonatomic, strong) NSRegularExpression *dotNetExpression;
@@ -33,9 +44,9 @@ static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterva
 
 @implementation RKDotNetDateFormatter
 
-+ (RKDotNetDateFormatter *)dotNetDateFormatterWithTimeZone:(NSTimeZone *)newTimeZone
++ (instancetype)dotNetDateFormatterWithTimeZone:(NSTimeZone *)newTimeZone
 {
-    RKDotNetDateFormatter *formatter = [[RKDotNetDateFormatter alloc] init];
+    RKDotNetDateFormatter *formatter = [self new];
     if (newTimeZone) formatter.timeZone = newTimeZone;
     return formatter;
 }
@@ -77,7 +88,7 @@ static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterva
     return [NSString stringWithFormat:@"/Date(%1.0lf%@)/", milliseconds, timeZoneOffset];
 }
 
-- (id)init
+- (instancetype)init
 {
     self = [super init];
     if (self) {
@@ -90,35 +101,15 @@ static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterva
     return self;
 }
 
-
-
-
 - (NSString *)millisecondsFromString:(NSString *)string
 {
     if (!string) return nil;
-    NSTextCheckingResult *match = [self.dotNetExpression firstMatchInString:string options:NSMatchingCompleted range:NSMakeRange(0, [string length])];
+    NSTextCheckingResult *match = [self.dotNetExpression firstMatchInString:string options:NSMatchingReportCompletion range:NSMakeRange(0, [string length])];
     if (!match) return nil;
     NSRange millisecRange = [match rangeAtIndex:1];
     if (!RKDotNetDateFormatterIsValidRange(millisecRange)) return nil;
     NSString *milliseconds = [string substringWithRange:millisecRange];
     return milliseconds;
 }
+
 @end
-
-
-static BOOL RKDotNetDateFormatterIsValidRange(NSRange rangeOfMatch)
-{
-    return (!NSEqualRanges(rangeOfMatch, NSMakeRange(NSNotFound, 0)));
-}
-
-
-static NSTimeInterval RKDotNetDateFormatterSecondsFromMilliseconds(NSTimeInterval millisecs)
-{
-    return millisecs / 1000.f;
-}
-
-
-static NSTimeInterval RKDotNetDateFormatterMillisecondsFromSeconds(NSTimeInterval seconds)
-{
-    return seconds *1000.f;
-}

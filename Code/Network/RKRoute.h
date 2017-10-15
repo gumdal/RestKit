@@ -45,20 +45,21 @@
 
  @param name A unique identifying name for the route.
  @param pathPattern A SOCKit pattern describing the format of URL paths generated from the route.
- @param method The request method of the route.
+ @param method The request method of the route. The method given must specify a single HTTP method to be used for requests using the route.
  @return A new named route object with the given name, path pattern and request method.
+ @raise NSInvalidArgumentException Raised if the given HTTP request method is not an exact match of the RKRequestMethod enum
  */
-+ (id)routeWithName:(NSString *)name pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
++ (instancetype)routeWithName:(NSString *)name pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
 
 /**
  Creates and returns a new class route object with the given object class, path pattern and method.
 
  @param objectClass The class that is represented by the route.
  @param pathPattern A SOCKit pattern describing the format of URL paths generated from the route.
- @param method The request method of the route.
+ @param method The request method of the route. More than one method may be specified via a bitwise OR.
  @return A new class route object with the given object class, path pattern and request method.
  */
-+ (id)routeWithClass:(Class)objectClass pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
++ (instancetype)routeWithClass:(Class)objectClass pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
 
 /**
  Creates and returns a new relationship route object with the given relationship name, object class, path pattern and method.
@@ -66,10 +67,10 @@
  @param name The name of the relationship represented by the route.
  @param objectClass The class containing the relationship represented by the route.
  @param pathPattern A SOCKit pattern describing the format of URL paths generated from the route.
- @param method The request method of the route.
+ @param method The request method of the route. More than one method may be specified via a bitwise OR.
  @return A new class route object with the given object class, path pattern and request method.
  */
-+ (id)routeWithRelationshipName:(NSString *)name objectClass:(Class)objectClass pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
++ (instancetype)routeWithRelationshipName:(NSString *)name objectClass:(Class)objectClass pathPattern:(NSString *)pathPattern method:(RKRequestMethod)method;
 
 ///---------------------------------
 /// @name Accessing Route Attributes
@@ -121,20 +122,20 @@
 
  @return YES if the receiver is a named route, else NO.
  */
-- (BOOL)isNamedRoute;
+@property (nonatomic, getter=isNamedRoute, readonly) BOOL namedRoute;
 
 /**
  Determines if the receiver is a class route.
 
  @return YES if the receiver is a class route, else NO.
  */
-- (BOOL)isClassRoute;
+@property (nonatomic, getter=isClassRoute, readonly) BOOL classRoute;
 
 /**
  Determines if the receiver is a relationship route.
 
  @return YES if the receiver is a relationship route, else NO.
  */
-- (BOOL)isRelationshipRoute;
+@property (nonatomic, getter=isRelationshipRoute, readonly) BOOL relationshipRoute;
 
 @end
